@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# /etc/update-motd.d/99-server-status
+# Shows host info, GPU status, and disk usage at login.
+
+set -u
+
+printf '\n'
+printf '=========================================================\n'
+printf ' Lab GPU Server: %s\n' "$(hostname)"
+printf ' IPs           : %s\n' "$(hostname -I 2>/dev/null | tr -s ' ' || echo n/a)"
+printf ' Kernel        : %s\n' "$(uname -r)"
+printf ' Uptime        : %s\n' "$(uptime -p 2>/dev/null || true)"
+printf '=========================================================\n'
+
+# GPU status
+if command -v gpustat >/dev/null 2>&1; then
+    printf ' GPU status (gpustat):\n'
+    gpustat --no-color 2>/dev/null | sed 's/^/   /'
+elif command -v nvidia-smi >/dev/null 2>&1; then
+    printf ' GPU status (nvidia-smi):\n'
+    nvidia-smi --query-gpu=index,name,utilization.gpu,memory.used,memory.total \
+               --format=csv,noheader 2>/dev/null | sed 's/^/   /'
+else
+    printf ' GPU status: nvidia-smi not available\n'
+fi
+
+# Disk usage for important paths
+printf '\n Disk usage:\n'
+df -h --output=target,size,used,avail,pcent /home /shared /scratch 2>/dev/null \
+    | sed 's/^/   /'
+
+cat <<'EOF'
+
+ Reminders:
+   * Long jobs: run inside tmux / byobu
+   * Check free GPUs with `gs` (gpustat) before launching
+   * Use $HF_HOME / /shared/models for shared model caches
+   * /scratch may be auto-cleaned (files >30 days)
+   * Questions or trouble? See ~/docs or ask the admin.
+=========================================================
+
+EOF

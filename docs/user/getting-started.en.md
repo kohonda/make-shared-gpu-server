@@ -1,0 +1,189 @@
+# Getting Started (English)
+
+Welcome to the lab GPU server. This guide walks first-time users through connecting, setting up Python, and using the GPUs.
+
+> Japanese version: [getting-started.ja.md](getting-started.ja.md)
+
+## 1. House rules
+
+- The server is shared. **Do not hog GPUs** or kill other users' jobs.
+- Put large datasets and models under `/shared`, not in your home directory.
+- Always run long jobs inside `tmux` or `byobu` so they survive disconnection.
+- See [faq.md](faq.md) when stuck.
+
+## 2. SSH access
+
+Standard access is **Tailscale + SSH key**.
+
+### 2.1 Install Tailscale (your laptop)
+
+Download from <https://tailscale.com/download> and join the lab tailnet (ask the admin for an invite).
+
+### 2.2 Generate an SSH key
+
+On your local machine:
+
+```bash
+ssh-keygen -t ed25519 -C "your-name@your-machine"
+```
+
+Send the **public** key (`~/.ssh/id_ed25519.pub`) to the admin. They will create your account.
+
+### 2.3 `~/.ssh/config`
+
+```
+Host gpu01
+    HostName gpu01
+    User <your-username>
+    IdentityFile ~/.ssh/id_ed25519
+    ServerAliveInterval 60
+```
+
+Connect:
+
+```bash
+ssh gpu01
+```
+
+You'll be asked to change your password on first login.
+
+## 3. VS Code Remote SSH
+
+1. Install the **Remote - SSH** extension
+2. Bottom-left blue button → **Remote-SSH: Connect to Host...**
+3. Pick `gpu01`
+4. First connect installs VS Code Server remotely (~30s)
+5. `File → Open Folder` to browse your home
+
+The integrated terminal runs on the server.
+
+## 4. GitHub SSH key (on the server)
+
+To `git push` from the server, generate a separate key there:
+
+```bash
+ssh-keygen -t ed25519 -C "<your-username>@gpu01" -f ~/.ssh/id_ed25519_github
+cat ~/.ssh/id_ed25519_github.pub
+```
+
+Add the printed key at <https://github.com/settings/keys>.
+
+`~/.ssh/config`:
+
+```
+Host github.com
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_ed25519_github
+    IdentitiesOnly yes
+```
+
+Test: `ssh -T git@github.com`.
+
+> 💡 Your home directory is mode 700, so private keys are not readable by other users.
+
+## 5. Python environment (uv / pixi)
+
+There is **no system CUDA Toolkit**. Use `uv` or `pixi` to install PyTorch with bundled CUDA.
+
+### uv
+
+```bash
+mkdir myproject && cd myproject
+uv init
+uv python install 3.11
+uv add torch torchvision
+uv run python -c "import torch; print(torch.cuda.is_available())"
+```
+
+### pixi
+
+```bash
+pixi init myproject
+cd myproject
+pixi add python=3.11 pytorch
+pixi run python my_script.py
+```
+
+## 6. Using GPUs
+
+### Check usage
+
+```bash
+gs        # gpustat -cp (alias)
+ns        # nvidia-smi (alias)
+nsl       # watch -n 1 nvidia-smi
+```
+
+### Pin to specific GPUs
+
+```bash
+CUDA_VISIBLE_DEVICES=0    python train.py
+CUDA_VISIBLE_DEVICES=1,3  python train.py
+```
+
+Always set this so you don't accidentally grab every GPU.
+
+### tmux for long jobs
+
+```bash
+tmux new -s train
+# launch training inside
+# Ctrl+b then d to detach
+tmux attach -t train
+```
+
+## 7. Shared resources
+
+| Path | Purpose | Permissions |
+|---|---|---|
+| `/shared/datasets` | Datasets (read-only) | lab read |
+| `/shared/models`   | Pretrained models     | lab read |
+| `/shared/workspace`| Collaboration         | lab rw  |
+| `/scratch`         | Scratch (may be cleaned after 30 days) | world rw, sticky |
+| `/archive`         | Archive (admin writes)| lab read |
+
+`HF_HOME` is set to `/shared/models/huggingface` system-wide, so HuggingFace downloads are cached for everyone automatically.
+
+## 8. Docker
+
+You're in the `docker` group, so **no sudo needed**.
+
+```bash
+docker run --rm hello-world
+docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
+```
+
+Example research image:
+
+```bash
+docker run --rm -it --gpus all \
+    -v /shared/datasets:/data:ro \
+    -v $HOME/work:/workspace \
+    pytorch/pytorch:2.4.0-cuda12.1-cudnn9-runtime bash
+```
+
+## 9. Jupyter / GUI (optional)
+
+Run Jupyter on the server, port-forward from your laptop:
+
+```bash
+# server
+jupyter lab --no-browser --port 8888 --ip 127.0.0.1
+```
+
+```bash
+# laptop
+ssh -N -L 8888:localhost:8888 gpu01
+# open http://localhost:8888
+```
+
+VS Code Remote SSH handles `.ipynb` natively. For full remote desktop, set up noVNC / x11vnc yourself over Tailscale (ask the admin first).
+
+## 10. Grafana
+
+If the monitoring stack is running, browse `http://<server>:3000` over Tailscale to see GPU utilization, temperature, memory and host load.
+
+## 11. FAQ
+
+See [faq.md](faq.md).
