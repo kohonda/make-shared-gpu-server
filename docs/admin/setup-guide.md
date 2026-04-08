@@ -31,11 +31,18 @@ nvidia-smi
 
 ## 2. リポジトリの取得
 
+置き場所はどこでも構いません（スクリプトは自身のパスを `$BASH_SOURCE` から解決するので、`cd` して `sudo ./scripts/setup.sh` を実行できる場所ならよい）。管理者のホーム配下に置くのが一番楽です。
+
 ```bash
 sudo apt install -y git
-git clone <REPO_URL> /opt/lab-gpu-server
-cd /opt/lab-gpu-server
+git clone git@github.com:kohonda/make-shared-gpu-server.git
+cd /make-shared-gpu-server
 ```
+
+
+> 📝 初期セットアップ後もリポジトリは残しておいてください。設定を更新したいときは `git pull` して `sudo ./scripts/setup.sh` を再実行すれば冪等に反映されます（`/etc/` 等への配布物はリポジトリ内の `config/` が元ネタになっています）。
+>
+> `/opt/` や `/usr/local/src/` に置いても動きますが、必須ではありません。書き込み権限の都合でむしろ管理者ホームの方が扱いやすいことが多いです。
 
 ## 3. メインセットアップの実行
 
@@ -106,9 +113,9 @@ sudo ./scripts/add-user.sh alice
 
 ## 7. トラブルシューティング
 
-| 症状 | 対処 |
-|---|---|
-| `nvidia-smi` が無い / 動かない | ドライバ未インストール。本ガイド §1 を実施 |
-| Docker から GPU が見えない | `sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker` |
-| ufw で締め出された | 物理コンソールから `sudo ufw disable` → ルール修正 |
-| Grafana の admin パスワードを忘れた | コンテナ停止 → `grafana-data` ボリューム削除 → 再起動（メトリクスは Prometheus に残る） |
+| 症状                                | 対処                                                                                       |
+| ----------------------------------- | ------------------------------------------------------------------------------------------ |
+| `nvidia-smi` が無い / 動かない    | ドライバ未インストール。本ガイド §1 を実施                                                |
+| Docker から GPU が見えない          | `sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker`    |
+| ufw で締め出された                  | 物理コンソールから `sudo ufw disable` → ルール修正                                      |
+| Grafana の admin パスワードを忘れた | コンテナ停止 →`grafana-data` ボリューム削除 → 再起動（メトリクスは Prometheus に残る） |

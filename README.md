@@ -40,9 +40,9 @@
 sudo apt install -y nvidia-driver-550 && sudo reboot
 nvidia-smi   # 動作確認
 
-# 2. リポジトリ取得
-git clone <REPO_URL> /opt/lab-gpu-server
-cd /opt/lab-gpu-server
+# 2. リポジトリ取得（置き場所は任意。管理者ホーム配下で OK）
+git clone <REPO_URL> ~/make-shared-gpu-server
+cd ~/make-shared-gpu-server
 
 # 3. メインセットアップ
 sudo ./scripts/setup.sh
