@@ -32,7 +32,10 @@ apt_update_once
 ensure_apt_pkgs \
     build-essential cmake git curl wget unzip ca-certificates gnupg lsb-release \
     tmux byobu htop ncdu tree jq \
-    python3-pip ufw software-properties-common
+    python3-pip ufw software-properties-common \
+    openssh-server
+# Ensure sshd is running and enabled on boot.
+systemctl enable --now ssh
 
 log_info "===== 2. gpustat ====="
 if cmd_exists gpustat; then
