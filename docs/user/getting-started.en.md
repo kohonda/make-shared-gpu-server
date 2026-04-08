@@ -13,39 +13,45 @@ Welcome to the lab GPU server. This guide walks first-time users through connect
 
 ## 2. SSH access
 
-Standard access is **Tailscale + SSH key**.
+Access uses **Tailscale SSH**. No password, no SSH key — authentication is done via your tailnet identity (Google account, etc.).
 
 ### 2.1 Install Tailscale (your laptop)
 
 Download from <https://tailscale.com/download> and join the lab tailnet (ask the admin for an invite).
 
-### 2.2 Generate an SSH key
+```bash
+tailscale status
+```
 
-On your local machine:
+If `<server-name>` shows up in the list, you're ready.
+
+### 2.2 Get an account
+
+Ask the admin to create your Linux account (e.g. `alice`) on the server. You don't need to send an SSH public key.
+
+### 2.3 Connect
 
 ```bash
-ssh-keygen -t ed25519 -C "your-name@your-machine"
+ssh <username>@<server-tailnet-name>
+# e.g. ssh alice@gpu01
 ```
 
-Send the **public** key (`~/.ssh/id_ed25519.pub`) to the admin. They will create your account.
+The first connection may open a browser for Tailscale auth (auto-approved if you're already logged in). No password / key prompt.
 
-### 2.3 `~/.ssh/config`
+Optional `~/.ssh/config`:
 
-```
+```text
 Host gpu01
-    HostName gpu01
+    HostName gpu01              # tailnet machine name (see `tailscale status`)
     User <your-username>
-    IdentityFile ~/.ssh/id_ed25519
     ServerAliveInterval 60
 ```
 
-Connect:
+> ⚠️ Do NOT set `HostName` to a name that resolves to your own machine (would give `Connection refused`). Use the name from `tailscale status` or the IP from `tailscale ip -4`.
 
-```bash
-ssh gpu01
-```
+### 2.4 sudo / password
 
-You'll be asked to change your password on first login.
+Regular users have no password (locked with `passwd -l`). If you ever need `sudo`, ask the admin to set a password for you.
 
 ## 3. VS Code Remote SSH
 

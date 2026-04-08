@@ -1,14 +1,14 @@
 # ユーザー追加・削除手順
 
+本サーバーは **Tailscale SSH** をアクセス経路としているため、Linux 側のパスワードや `authorized_keys` は通常運用では使いません。利用者を受け入れる流れは:
+
+1. サーバーに Linux アカウントを作る（`add-user.sh`）
+2. 利用者を **lab の tailnet に招待**（Tailscale 管理画面）
+3. 利用者は自分の PC で Tailscale にログインし、`ssh <username>@<server>` するだけ
+
+パスワードも SSH 鍵も手渡し不要です。
+
 ## 追加
-
-推奨フロー: 利用者から受け取った公開鍵ファイルを第2引数に渡して一発で完了させます。
-
-```bash
-sudo ./scripts/add-user.sh <username> path/to/pubkey.pub
-```
-
-公開鍵が未着の場合は省略可能（後から登録）:
 
 ```bash
 sudo ./scripts/add-user.sh <username>
@@ -18,48 +18,33 @@ sudo ./scripts/add-user.sh <username>
 
 - ホームディレクトリ作成（`/home/<user>`, mode `750`）
 - グループ `labmembers`, `docker` に所属（Docker は sudo 不要で使えます）
-- ランダム初期パスワードを生成して表示
-- `chage -d 0` で初回ログイン時にパスワード変更を強制
-- `~/.ssh/` を mode 700 で作成、`authorized_keys` を mode 600 で配置
-  - 公開鍵を渡していれば `ssh-keygen -l` で妥当性チェックしてから `install` でコピー
-  - 渡していなければ空ファイルを作成
+- **パスワードは `passwd -l` でロック**（Tailscale SSH 経由でのみログイン可）
+- `authorized_keys` は作成しません
 
-### 公開鍵の後付け登録
+作成後、Tailscale 管理画面から当該メンバーを tailnet に招待してください。
 
-`add-user.sh` 実行時に鍵を渡しそびれた場合は、**root で** 直接コピーするのが確実です（`sudo -u <user>` だと降格後に管理者側の pubkey を読めず失敗します）。
+## sudo を使わせたい場合
 
-```bash
-# 上書き
-sudo install -o <username> -g <username> -m 600 pubkey.pub \
-    /home/<username>/.ssh/authorized_keys
-
-# 追記
-sudo tee -a /home/<username>/.ssh/authorized_keys < pubkey.pub >/dev/null
-```
-
-### 新規ユーザーのホームに入って作業したい
-
-home は mode 750 なので、管理者自身のアカウントから `cd /home/<user>` しても **Permission denied** になります（`sudo cd` は shell builtin なので効きません）。次のどちらかを使います。
+Tailscale SSH 経由ではパスワードが設定されていないため、そのままでは `sudo` を使えません。必要な管理者候補にだけ、個別にパスワードを設定します。
 
 ```bash
-# そのユーザーとしてログインシェルを開く
-sudo -i -u <username>
-
-# 単発コマンドだけ実行
-sudo -u <username> ls -la ~/.ssh
+sudo passwd <username>          # パスワードを設定（ロック解除）
+sudo usermod -aG sudo <username>
 ```
 
-### 既存ユーザー（旧スクリプトで mode 700 になっているもの）
+以後、そのユーザーは `sudo` コマンド入力時にパスワードを求められます。
 
-以前のバージョンの `add-user.sh` は home を mode 700 にしていました。必要なら:
+## Tailscale 招待
+
+- 管理画面: <https://login.tailscale.com/admin/machines>
+- メンバー招待: **Users → Invite users**
+- ACL で `labmembers` タグ等を使って SSH 許可を絞ると安全です
+
+接続確認（サーバー側）:
 
 ```bash
-sudo chmod 750 /home/<username>
+tailscale status
 ```
-
-### 初期パスワードの伝達
-
-スクリプトが表示する初期パスワードは **安全な経路（暗号化チャット等）** で本人にのみ伝えてください。
 
 ## 削除
 
@@ -72,6 +57,8 @@ sudo userdel -r <username>
 sudo userdel <username>
 ```
 
+Tailscale 側からも当該ユーザーを tailnet から外すのを忘れずに。
+
 ## 一時的な無効化
 
 ```bash
@@ -79,10 +66,28 @@ sudo usermod -L <username>      # ロック
 sudo usermod -U <username>      # 解除
 ```
 
-## グループ変更
+## 新規ユーザーのホームに入って作業したい
 
-例: 管理者権限を付与する。
+home は mode 750 なので、管理者自身のアカウントから `cd /home/<user>` しても **Permission denied** になります（`sudo cd` は shell builtin なので効きません）。次のどちらかを使います。
 
 ```bash
-sudo usermod -aG sudo <username>
+# そのユーザーとしてログインシェルを開く
+sudo -i -u <username>
+
+# 単発コマンドだけ実行
+sudo -u <username> ls -la ~/.ssh
 ```
+
+## 付録: LAN 経由 SSH 運用に戻したい場合
+
+通常は不要ですが、Tailscale を使わずローカル LAN から SSH させたい場合は:
+
+1. `config/ufw/rules.sh` を編集し、LAN CIDR からの 22 番許可を再追加
+2. `sudo ./scripts/add-user.sh` では鍵登録まで行わないので、以下で authorized_keys を配置:
+
+   ```bash
+   sudo install -d -o <user> -g <user> -m 700 /home/<user>/.ssh
+   sudo install -o <user> -g <user> -m 600 pubkey.pub /home/<user>/.ssh/authorized_keys
+   ```
+
+3. `config/ssh/99-lab.conf` は `PasswordAuthentication no` のままにしておくことを推奨

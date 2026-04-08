@@ -13,39 +13,46 @@
 
 ## 2. SSH 接続
 
-サーバーへのアクセスは **Tailscale 経由 + SSH 鍵認証** が標準です。
+サーバーへのアクセスは **Tailscale SSH** で行います。パスワードも SSH 鍵も不要です。認証は tailnet にログインしている自分のアカウント（Google 等）で自動的に行われます。
 
-### 2.1 Tailscale を入れる（クライアント側）
+### 2.1 Tailscale をインストール（クライアント側）
 
-[公式サイト](https://tailscale.com/download) からアプリをインストールし、研究室の tailnet にログインします（招待は管理者から受け取ってください）。
-
-### 2.2 SSH 鍵を生成
-
-まだ鍵が無ければ、ローカル PC で生成します。
+[公式サイト](https://tailscale.com/download) からアプリを入れ、研究室の tailnet にログインします。tailnet への招待は管理者から受け取ってください。
 
 ```bash
-ssh-keygen -t ed25519 -C "your-name@your-machine"
+# ログイン後に確認
+tailscale status
 ```
 
-`~/.ssh/id_ed25519` (秘密鍵) と `~/.ssh/id_ed25519.pub` (公開鍵) ができます。**公開鍵 (`.pub`)** を管理者に送ってください。アカウントが作られ次第、ログインできるようになります。
+`<server-name>` がリストに出ていれば準備完了です。
 
-### 2.3 `~/.ssh/config` の設定例
+### 2.2 アカウントの用意
 
+管理者にサーバー上のログインユーザー名（例: `alice`）を作ってもらいます。公開鍵の受け渡しは不要です。
+
+### 2.3 接続
+
+```bash
+ssh <username>@<server-tailnet-name>
+# 例: ssh alice@gpu01
 ```
+
+初回接続時、ブラウザが開いて Tailscale の認証が求められることがあります（tailnet にログイン済みであれば自動で承認されます）。パスワードや鍵の入力は一切ありません。
+
+便利のため `~/.ssh/config` にエイリアスを書いておくとよいです。
+
+```text
 Host gpu01
-    HostName gpu01           # tailnet 内の名前または IP
+    HostName gpu01              # tailnet 内のマシン名（tailscale status で確認）
     User <your-username>
-    IdentityFile ~/.ssh/id_ed25519
     ServerAliveInterval 60
 ```
 
-接続:
+> ⚠️ `HostName` にクライアント自身と同じ名前を書かないでください（解決が自分自身に向いて `Connection refused` になります）。`tailscale status` で表示される名前か、`tailscale ip -4` のアドレスを使ってください。
 
-```bash
-ssh gpu01
-```
+### 2.4 sudo / パスワードが必要な場面
 
-初回ログイン時はパスワード変更を求められます（管理者が伝えた初期パスワードを入力 → 新しいパスワードを設定）。
+通常、一般ユーザーはパスワードを持っていません（`passwd -l` でロック済み）。`sudo` を使う必要が出たら管理者に依頼してパスワードを設定してもらってください。
 
 ## 3. VS Code Remote SSH
 

@@ -52,18 +52,19 @@ sudo ./scripts/setup.sh
 
 実行内容:
 
-1. 基本パッケージ（build-essential, tmux, htop, gpustat 等）
-2. NVIDIA ドライバ存在チェック
-3. Docker Engine
-4. NVIDIA Container Toolkit
-5. uv / pixi（`/usr/local/bin` に配置）
-6. グループ `labmembers`、共有ディレクトリ（`/shared/{datasets,models,workspace}`, `/scratch`, `/archive`）
-7. 共有環境変数 (`/etc/profile.d/lab-defaults.sh`)
-8. `/etc/skel/` の dotfiles
-9. ufw 設定
-10. unattended-upgrades（セキュリティのみ）
-11. MOTD
-12. `/scratch` クリーンアップ用 cron（コメントアウト状態）
+1. 基本パッケージ（build-essential, tmux, htop, gpustat, openssh-server 等）
+2. sshd ハードニング（`PasswordAuthentication no` 他）
+3. NVIDIA ドライバ存在チェック
+4. Docker Engine
+5. NVIDIA Container Toolkit
+6. uv / pixi（`/usr/local/bin` に配置）
+7. グループ `labmembers`、共有ディレクトリ（`/shared/{datasets,models,workspace}`, `/scratch`, `/archive`）
+8. 共有環境変数 (`/etc/profile.d/lab-defaults.sh`)
+9. `/etc/skel/` の dotfiles
+10. ufw 設定（SSH は tailscale0 のみ許可）
+11. unattended-upgrades（セキュリティのみ）
+12. MOTD
+13. `/scratch` クリーンアップ用 cron（コメントアウト状態）
 
 冪等です。何度実行しても安全。
 
@@ -82,9 +83,16 @@ sudo ./scripts/setup-tailscale.sh
 sudo tailscale up --ssh --hostname="$(hostname)"
 ```
 
-表示される URL を開いて tailnet に登録します。
+表示される URL を開いて tailnet に登録します。そのあと、Tailscale 管理画面 <https://login.tailscale.com/admin/machines> でマシンを確認し、lab メンバーを **Users → Invite users** で招待してください。必要に応じて ACL で SSH 権限を絞ります。
 
-SSH は Tailscale 経由を推奨します（ufw でローカル LAN 以外の SSH は閉じています）。
+### SSH 運用ポリシー
+
+本サーバーの SSH アクセスは **Tailscale SSH オンリー** です。
+
+- **ufw**: 22 番ポートは `tailscale0` インターフェースからのみ許可。LAN からの SSH も塞いでいます。
+- **Tailscale SSH**: `tailscale up --ssh` により tailnet 経由の SSH 接続は Tailscale が直接処理します。認証は **tailnet のアイデンティティ**（Google 等）で行われ、Linux 側のパスワード・`authorized_keys` は参照されません。
+- **sshd ハードニング**: 万一 Tailscale SSH が停止し LAN 経由を開けた場合でも平文パスワードで入れないよう、`/etc/ssh/sshd_config.d/99-lab.conf` で `PasswordAuthentication no` / `PermitRootLogin no` を強制しています。
+- **結果**: 利用者の受け入れは「`add-user.sh` でアカウント作成 → tailnet に招待」だけで完了します。初期パスワードも公開鍵も不要です。
 
 ## 5. 監視スタック（Prometheus + Grafana）
 

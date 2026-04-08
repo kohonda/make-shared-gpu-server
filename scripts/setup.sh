@@ -37,6 +37,10 @@ ensure_apt_pkgs \
 # Ensure sshd is running and enabled on boot.
 systemctl enable --now ssh
 
+# Harden sshd: no password auth, no root login (Tailscale SSH is primary).
+install_file "$REPO_ROOT/config/ssh/99-lab.conf" /etc/ssh/sshd_config.d/99-lab.conf 0644
+systemctl reload ssh 2>/dev/null || systemctl reload sshd 2>/dev/null || true
+
 log_info "===== 2. gpustat ====="
 if cmd_exists gpustat; then
     log_info "gpustat already installed"

@@ -8,12 +8,15 @@
 #
 # Policy:
 #   - default deny incoming, allow outgoing
-#   - SSH allowed from tailscale0 and from the local CIDR
+#   - SSH allowed ONLY on tailscale0 (Tailscale SSH handles auth)
 #   - Grafana (3000) / Prometheus (9090) allowed only on tailscale0
+#
+# The LOCAL_CIDR argument is reserved for future use (e.g. opening
+# non-SSH services to the lab LAN) and is currently unused.
 #
 set -euo pipefail
 
-LOCAL_CIDR="${1:-192.168.0.0/16}"
+: "${1:-}"  # LOCAL_CIDR reserved; see header comment
 
 if [[ ${EUID:-$(id -u)} -ne 0 ]]; then
     echo "[ERROR] must be run as root" >&2
@@ -29,9 +32,8 @@ ufw --force reset >/dev/null
 ufw default deny incoming
 ufw default allow outgoing
 
-# SSH
+# SSH (tailscale-only)
 ufw allow in on tailscale0 to any port 22 proto tcp comment 'SSH via tailscale'
-ufw allow from "$LOCAL_CIDR" to any port 22 proto tcp comment 'SSH from lab LAN'
 
 # Monitoring (tailnet only)
 ufw allow in on tailscale0 to any port 3000 proto tcp comment 'Grafana via tailscale'
