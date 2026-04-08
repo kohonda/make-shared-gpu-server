@@ -80,7 +80,7 @@ Host github.com
 
 Test: `ssh -T git@github.com`.
 
-> 💡 Your home directory is mode 700, so private keys are not readable by other users.
+> 💡 Your home directory is mode 750 and owned by a private per-user group, so nobody else on the machine can read your files (including private keys).
 
 ## 5. Python environment (uv / pixi)
 

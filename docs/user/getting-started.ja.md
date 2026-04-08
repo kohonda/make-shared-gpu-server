@@ -88,7 +88,7 @@ ssh -T git@github.com
 # Hi <your-username>! You've successfully authenticated...
 ```
 
-> 💡 ホームディレクトリは mode 700 なので、他のユーザーから秘密鍵は見えません。安心してください。
+> 💡 ホームディレクトリは mode 750 ＋ あなた専用のプライベートグループなので、他のユーザーからは秘密鍵も含めて中身が見えません。安心してください。
 
 ## 5. Python 環境（uv / pixi）
 
