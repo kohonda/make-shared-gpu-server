@@ -39,5 +39,8 @@ ufw allow in on tailscale0 to any port 22 proto tcp comment 'SSH via tailscale'
 ufw allow in on tailscale0 to any port 3000 proto tcp comment 'Grafana via tailscale'
 ufw allow in on tailscale0 to any port 9090 proto tcp comment 'Prometheus via tailscale'
 
+# node-exporter: allow Prometheus (Docker bridge) to scrape host metrics
+ufw allow from 172.16.0.0/12 to any port 9100 proto tcp comment 'node-exporter from Docker'
+
 ufw --force enable
 ufw status verbose
