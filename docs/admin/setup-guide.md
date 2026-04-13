@@ -111,6 +111,8 @@ sudo ./scripts/setup-monitoring.sh
 - Grafana: `http://<tailscale-ip>:3000`
 - Prometheus: `http://<tailscale-ip>:9090`
 
+Grafana の初期ログイン情報は `.env` の `GF_SECURITY_ADMIN_USER` / `GF_SECURITY_ADMIN_PASSWORD` で設定した値です。
+
 ## 6. 初回ユーザー追加
 
 ```bash

@@ -33,7 +33,7 @@ ensure_apt_pkgs \
     build-essential cmake git curl wget unzip ca-certificates gnupg lsb-release \
     tmux byobu htop ncdu tree jq \
     python3-pip ufw software-properties-common \
-    openssh-server
+    openssh-server net-tools
 # Ensure sshd is running and enabled on boot.
 systemctl enable --now ssh
 
