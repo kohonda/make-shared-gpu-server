@@ -37,7 +37,10 @@
 
 ```bash
 # 1. 事前に NVIDIA ドライバを手動インストール
-sudo apt install -y nvidia-driver-550 && sudo reboot
+# https://ubuntu.com/server/docs/how-to/graphics/install-nvidia-drivers/
+sudo ubuntu-drivers list
+sudo ubuntu-drivers install
+reboot
 nvidia-smi   # 動作確認
 
 # 2. リポジトリ取得（置き場所は任意。管理者ホーム配下で OK）
