@@ -78,12 +78,30 @@ LAB_LOCAL_CIDR=10.0.0.0/8 sudo -E ./scripts/setup.sh
 
 ## 4. Tailscale のセットアップ
 
+### 方法A: 対話式（ブラウザが使える場合）
+
 ```bash
 sudo ./scripts/setup-tailscale.sh
 sudo tailscale up --ssh --hostname="$(hostname)"
 ```
 
-表示される URL を開いて tailnet に登録します。そのあと、Tailscale 管理画面 <https://login.tailscale.com/admin/machines> でマシンを確認し、lab メンバーを **Users → Invite users** で招待してください。必要に応じて ACL で SSH 権限を絞ります。
+表示される URL を開いて tailnet に登録します。
+
+### 方法B: Auth Key（ヘッドレス／ブラウザなしの場合）
+
+1. 別のPCで Tailscale 管理画面 <https://login.tailscale.com/admin/settings/keys> を開く
+2. **Generate auth key** をクリックしてキーを生成（Reusable にすると複数台に使い回せる）
+3. サーバーで以下を実行:
+
+```bash
+TAILSCALE_AUTHKEY=tskey-auth-XXXX sudo -E ./scripts/setup-tailscale.sh
+```
+
+スクリプトが自動的に `tailscale up --ssh` を実行し、tailnet に参加します。
+
+### tailnet の管理
+
+セットアップ後、Tailscale 管理画面 <https://login.tailscale.com/admin/machines> でマシンを確認し、lab メンバーを **Users → Invite users** で招待してください。必要に応じて ACL で SSH 権限を絞ります。
 
 ### SSH 運用ポリシー
 
