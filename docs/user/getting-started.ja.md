@@ -35,6 +35,7 @@ tailscale status
 ```bash
 ssh <username>@<server-tailnet-name>
 # 例: ssh alice@gpu01
+# Tailscale IP でも接続できます: ssh alice@100.x.x.x
 ```
 
 初回接続時、ブラウザが開いて Tailscale の認証が求められることがあります（tailnet にログイン済みであれば自動で承認されます）。パスワードや鍵の入力は一切ありません。
@@ -48,7 +49,7 @@ Host gpu01
     ServerAliveInterval 60
 ```
 
-> ⚠️ `HostName` にクライアント自身と同じ名前を書かないでください（解決が自分自身に向いて `Connection refused` になります）。`tailscale status` で表示される名前か、`tailscale ip -4` のアドレスを使ってください。
+> ⚠️ `HostName` にクライアント自身と同じ名前を書かないでください（解決が自分自身に向いて `Connection refused` になります）。`tailscale status` で表示される名前か、`tailscale ip -4` で取得した IP アドレス（例: `100.x.x.x`）を使ってください。
 
 ### 2.4 sudo / パスワードが必要な場面
 

@@ -10,6 +10,10 @@
 
 ## 追加
 
+> **ユーザー名は Tailscale アカウントのメール prefix に合わせてください。**
+> Tailscale SSH のデフォルト ACL では、Tailscale ユーザーは自分のメールアドレスの `@` より前の部分と一致する Linux ユーザーにのみログインできます（例: `alice@example.com` → Linux ユーザー `alice`）。
+> Tailscale ACL をカスタマイズすれば任意のマッピングも可能ですが、通常は合わせておくのが最もシンプルです。
+
 ```bash
 sudo ./scripts/add-user.sh <username>
 ```

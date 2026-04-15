@@ -30,10 +30,11 @@ cat <<'EOF'
 ================ Tailscale next steps ================
 Run the following command to authenticate this host:
 
-    sudo tailscale up --ssh --hostname="$(hostname)"
+    sudo tailscale up --ssh --hostname="$(hostname)" --advertise-tags=tag:server
 
-  --ssh         : enables Tailscale SSH (no separate key required)
-  --hostname=...: registers under the current hostname
+  --ssh              : enables Tailscale SSH (no separate key required)
+  --hostname=...     : registers under the current hostname
+  --advertise-tags=..: assigns a tag for ACL-based SSH access control
 
 After running, follow the printed URL to log in via your tailnet admin.
 

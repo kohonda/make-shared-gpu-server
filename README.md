@@ -49,7 +49,7 @@ sudo ./scripts/setup.sh
 
 # 4. Tailscale
 sudo ./scripts/setup-tailscale.sh
-sudo tailscale up --ssh --hostname="$(hostname)"
+sudo tailscale up --ssh --hostname="$(hostname)" --advertise-tags=tag:server
 
 # 5. 監視（任意）
 cp config/monitoring/.env.example config/monitoring/.env

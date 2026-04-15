@@ -34,6 +34,7 @@ Ask the admin to create your Linux account (e.g. `alice`) on the server. You don
 ```bash
 ssh <username>@<server-tailnet-name>
 # e.g. ssh alice@gpu01
+# You can also use the Tailscale IP: ssh alice@100.x.x.x
 ```
 
 The first connection may open a browser for Tailscale auth (auto-approved if you're already logged in). No password / key prompt.
@@ -47,7 +48,7 @@ Host gpu01
     ServerAliveInterval 60
 ```
 
-> ⚠️ Do NOT set `HostName` to a name that resolves to your own machine (would give `Connection refused`). Use the name from `tailscale status` or the IP from `tailscale ip -4`.
+> ⚠️ Do NOT set `HostName` to a name that resolves to your own machine (would give `Connection refused`). Use the name from `tailscale status` or the IP from `tailscale ip -4` (e.g. `100.x.x.x`).
 
 ### 2.4 sudo / password
 

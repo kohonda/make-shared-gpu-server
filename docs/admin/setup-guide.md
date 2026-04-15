@@ -80,10 +80,10 @@ LAB_LOCAL_CIDR=10.0.0.0/8 sudo -E ./scripts/setup.sh
 
 ```bash
 sudo ./scripts/setup-tailscale.sh
-sudo tailscale up --ssh --hostname="$(hostname)"
+sudo tailscale up --ssh --hostname="$(hostname)" --advertise-tags=tag:server
 ```
 
-表示される URL を開いて tailnet に登録します。そのあと、Tailscale 管理画面 <https://login.tailscale.com/admin/machines> でマシンを確認し、lab メンバーを **Users → Invite users** で招待してください。必要に応じて ACL で SSH 権限を絞ります。
+表示される URL を開いて tailnet に登録します。`--advertise-tags=tag:server` により、ACL の SSH ルールで `dst: ["tag:server"]` として参照できます。そのあと、Tailscale 管理画面 <https://login.tailscale.com/admin/machines> でマシンを確認し、lab メンバーを **Users → Invite users** で招待してください。必要に応じて ACL で SSH 権限を絞ります。
 
 ### SSH 運用ポリシー
 

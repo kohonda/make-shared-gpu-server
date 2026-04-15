@@ -20,7 +20,7 @@ if [[ $# -ne 1 ]]; then
 fi
 USERNAME="$1"
 
-if ! [[ "$USERNAME" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]]; then
+if ! [[ "$USERNAME" =~ ^[a-z_][a-z0-9._-]{0,31}$ ]]; then
     die "Invalid username: $USERNAME"
 fi
 
@@ -40,6 +40,9 @@ passwd -l "$USERNAME" >/dev/null
 # Lock down home directory (750: user's private group only, others closed).
 chmod 750 "/home/$USERNAME"
 
+TS_HOSTNAME=$(hostname)
+TS_IP=$(tailscale ip -4 2>/dev/null)
+
 cat <<EOF
 
 ================ User Created ================
@@ -47,6 +50,10 @@ cat <<EOF
   Groups   : $(id -nG "$USERNAME")
   Home     : /home/$USERNAME (mode 750)
   Password : LOCKED (Tailscale SSH is the access path)
+
+SSH CONNECTION (tell the user):
+  ssh $USERNAME@${TS_HOSTNAME:-<server-tailnet-name>}
+  ssh $USERNAME@${TS_IP:-<tailscale-ip>}
 
 NEXT STEPS:
   1. Invite the user to the lab tailnet so they can reach this host
