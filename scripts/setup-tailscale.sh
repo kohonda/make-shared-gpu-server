@@ -9,6 +9,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/common.sh
 source "$SCRIPT_DIR/lib/common.sh"
 
+# ---------- configurable variables ----------
+TAILSCALE_AUTHKEY="${TAILSCALE_AUTHKEY:-}"
+TAILSCALE_HOSTNAME="${TAILSCALE_HOSTNAME:-$(hostname)}"
+# --------------------------------------------
+
 require_root
 detect_ubuntu_version
 
@@ -25,7 +30,14 @@ else
     systemctl enable --now tailscaled
 fi
 
-cat <<'EOF'
+if [[ -n "$TAILSCALE_AUTHKEY" ]]; then
+    log_info "Auth key provided — running tailscale up (non-interactive)"
+    tailscale up --ssh --authkey="$TAILSCALE_AUTHKEY" --hostname="$TAILSCALE_HOSTNAME"
+    log_info "Tailscale is up. Status:"
+    tailscale status
+    log_info "Tailscale IP: $(tailscale ip -4)"
+else
+    cat <<'EOF'
 
 ================ Tailscale next steps ================
 Run the following command to authenticate this host:
@@ -38,8 +50,14 @@ Run the following command to authenticate this host:
 
 After running, follow the printed URL to log in via your tailnet admin.
 
+For headless (no browser) servers, generate an auth key at:
+    https://login.tailscale.com/admin/settings/keys
+Then re-run this script with:
+    TAILSCALE_AUTHKEY=tskey-auth-XXXX sudo -E ./scripts/setup-tailscale.sh
+
 To see status:        tailscale status
 To find the IP:       tailscale ip -4
 To bring it down:     sudo tailscale down
 =======================================================
 EOF
+fi
