@@ -17,19 +17,48 @@ Access uses **Tailscale SSH**. No password, no SSH key — authentication is don
 
 ### 2.1 Install Tailscale (your laptop)
 
-Download from <https://tailscale.com/download> and join the lab tailnet (ask the admin for an invite).
+Download from <https://tailscale.com/download> and install the app. Ask the admin for a tailnet invite.
+
+After installation, log in for the first time:
+
+- **Desktop app (Windows / macOS)**: launch the app — a browser opens for Google account login
+- **Linux CLI**: run the command below and open the printed URL in a browser
+
+```bash
+tailscale login
+```
+
+After login, run `tailscale status`. If `<server-name>` shows up, you're ready.
 
 ```bash
 tailscale status
 ```
 
-If `<server-name>` shows up in the list, you're ready.
+### 2.2 Tailscale basics
 
-### 2.2 Get an account
+Once logged in, a VPN tunnel is established automatically and you can reach the server. The server runs Tailscale 24/7, so **as long as Tailscale is running on your machine, you can SSH in**.
+
+Common commands:
+
+```bash
+tailscale status          # list machines and connection state in the tailnet
+tailscale ip -4           # show your Tailscale IPv4 address
+tailscale login           # first-time login (opens browser for auth)
+tailscale logout          # log out (requires login again to reconnect)
+tailscale up              # start VPN (use after a disconnect)
+tailscale down            # stop VPN (server becomes unreachable)
+tailscale ping <server>   # check connectivity to a specific machine
+```
+
+- **On boot**: if the desktop app is set to auto-start, VPN is established at login
+- **After `tailscale down`**: VPN stays off until you explicitly run `tailscale up`
+- **Network changes** (Wi-Fi → Ethernet, etc.): Tailscale reconnects automatically
+
+### 2.3 Get an account
 
 Ask the admin to create your Linux account (e.g. `alice`) on the server. You don't need to send an SSH public key.
 
-### 2.3 Connect
+### 2.4 Connect
 
 ```bash
 ssh <username>@<server-tailnet-name>
@@ -50,7 +79,7 @@ Host gpu01
 
 > ⚠️ Do NOT set `HostName` to a name that resolves to your own machine (would give `Connection refused`). Use the name from `tailscale status` or the IP from `tailscale ip -4` (e.g. `100.x.x.x`).
 
-### 2.4 sudo / password
+### 2.5 sudo / password
 
 Regular users have no password (locked with `passwd -l`). If you ever need `sudo`, ask the admin to set a password for you.
 

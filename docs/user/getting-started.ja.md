@@ -17,20 +17,48 @@
 
 ### 2.1 Tailscale をインストール（クライアント側）
 
-[公式サイト](https://tailscale.com/download) からアプリを入れ、研究室の tailnet にログインします。tailnet への招待は管理者から受け取ってください。
+[公式サイト](https://tailscale.com/download) からアプリをインストールしてください。tailnet への招待は管理者から受け取ってください。
+
+インストール後、初回はログインが必要です:
+
+- **デスクトップアプリ（Windows / macOS）**: アプリを起動するとブラウザが開き、Google アカウント等でログインできます
+- **Linux CLI**: 以下のコマンドを実行し、表示される URL をブラウザで開いてログインします
 
 ```bash
-# ログイン後に確認
+tailscale login
+```
+
+ログイン後、`tailscale status` で `<server-name>` がリストに出ていれば準備完了です。
+
+```bash
 tailscale status
 ```
 
-`<server-name>` がリストに出ていれば準備完了です。
+### 2.2 Tailscale の基本操作
 
-### 2.2 アカウントの用意
+ログイン後は自動的に VPN が確立され、サーバーと通信できるようになります。サーバー側は常時 Tailscale が起動しているので、**自分のPC側で Tailscale が動いていれば SSH 可能**です。
+
+よく使うコマンド:
+
+```bash
+tailscale status          # tailnet 内のマシン一覧と接続状態を確認
+tailscale ip -4           # 自分の Tailscale IPv4 アドレスを表示
+tailscale login           # 初回ログイン（ブラウザで認証）
+tailscale logout          # ログアウト（再度 login が必要になる）
+tailscale up              # VPN 接続を開始（切断後の再接続時に使う）
+tailscale down            # VPN 接続を切断（サーバーへのアクセスも切れる）
+tailscale ping <server>   # 特定マシンへの疎通確認
+```
+
+- **PC起動時**: デスクトップアプリが自動起動する設定であれば、ログインと同時に VPN が張られます
+- **`tailscale down` した場合**: 明示的に `tailscale up` するまで VPN は切断されたままです
+- **ネットワーク切替時**（Wi-Fi → 有線など）: Tailscale が自動的に再接続します
+
+### 2.3 アカウントの用意
 
 管理者にサーバー上のログインユーザー名（例: `alice`）を作ってもらいます。公開鍵の受け渡しは不要です。
 
-### 2.3 接続
+### 2.4 接続
 
 ```bash
 ssh <username>@<server-tailnet-name>
@@ -51,7 +79,7 @@ Host gpu01
 
 > ⚠️ `HostName` にクライアント自身と同じ名前を書かないでください（解決が自分自身に向いて `Connection refused` になります）。`tailscale status` で表示される名前か、`tailscale ip -4` で取得した IP アドレス（例: `100.x.x.x`）を使ってください。
 
-### 2.4 sudo / パスワードが必要な場面
+### 2.5 sudo / パスワードが必要な場面
 
 通常、一般ユーザーはパスワードを持っていません（`passwd -l` でロック済み）。`sudo` を使う必要が出たら管理者に依頼してパスワードを設定してもらってください。
 

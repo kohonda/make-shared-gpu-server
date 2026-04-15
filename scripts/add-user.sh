@@ -58,9 +58,8 @@ SSH CONNECTION (tell the user):
 NEXT STEPS:
   1. Invite the user to the lab tailnet so they can reach this host
      via Tailscale SSH. No password, no SSH key required.
-  2. If this user ever needs sudo, set a password first:
-         sudo passwd $USERNAME
-         sudo usermod -aG sudo $USERNAME
+  2. Add the user to the Tailscale ACL SSH rules:
+     https://login.tailscale.com/admin/acls/file
   3. To open a shell as this user from the admin account:
          sudo -i -u $USERNAME
 ===============================================

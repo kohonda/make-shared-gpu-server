@@ -38,11 +38,45 @@ sudo usermod -aG sudo <username>
 
 以後、そのユーザーは `sudo` コマンド入力時にパスワードを求められます。
 
-## Tailscale 招待
+## Tailscale 招待 & ACL 登録
+
+### 1. tailnet への招待
 
 - 管理画面: <https://login.tailscale.com/admin/machines>
-- メンバー招待: **Users → Invite users**
-- ACL で `labmembers` タグ等を使って SSH 許可を絞ると安全です
+- メンバー招待: **Users → Machines → Share** からメールアドレスで招待
+
+### 2. ACL に SSH ルールを追加
+
+ユーザーを追加したら、Tailscale の Access Controls にも SSH 許可ルールを追加する必要があります。
+
+ACL 編集画面: <https://login.tailscale.com/admin/acls/file>
+
+`ssh` セクションに以下のようなエントリを追加してください:
+
+```jsonc
+"ssh": [
+    // ... 既存のルール ...
+    {
+        "action": "accept",
+        "src":    ["newuser_1@gmail.com"],      // Tailscale アカウントのメールアドレス
+        "dst":    ["tag:server"],              // サーバーのタグ（tailscale up --advertise-tags=tag:server で設定）
+        "users":  ["newuser_1"]                  // Linux ユーザー名
+    },
+    // !!!! ユーザーごとに別の{}ブロックで追加していくこと !!!!!
+    {
+        "action": "accept",
+        "src":    ["newuser_2@gmail.com"],      // Tailscale アカウントのメールアドレス
+        "dst":    ["tag:server"],              // サーバーのタグ（tailscale up --advertise-tags=tag:server で設定）
+        "users":  ["newuser_2"]                  // Linux ユーザー名
+    }
+]
+```
+
+- `src`: ユーザーの Tailscale アカウント（メールアドレス）
+- `dst`: 接続先サーバーのタグ。サーバーは `tag:server` で登録されています
+- `users`: サーバー上の Linux ユーザー名（`add-user.sh` で作成した名前=Tailscale アカウントのメールアドレスの `@` より前の部分）
+
+### 3. 接続確認
 
 接続確認（サーバー側）:
 
