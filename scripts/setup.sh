@@ -186,10 +186,11 @@ cat >/etc/apt/apt.conf.d/20auto-upgrades <<'EOF'
 APT::Periodic::Update-Package-Lists "1";
 APT::Periodic::Unattended-Upgrade "1";
 EOF
-# Restrict to security origins only (idempotent: comment out non-security lines).
-sed -i \
-    -e 's|^\(\s*\)"\${distro_id}:\${distro_codename}-updates";|\1// "${distro_id}:${distro_codename}-updates";|' \
-    /etc/apt/apt.conf.d/50unattended-upgrades || true
+# Ubuntu's default 50unattended-upgrades already leaves -updates commented out,
+# so only the release, -security and ESM origins are upgraded automatically.
+# Blacklist NVIDIA packages so the manually managed driver is never upgraded.
+install_file "$REPO_ROOT/config/apt/51-lab-unattended-upgrades" \
+    /etc/apt/apt.conf.d/51-lab-unattended-upgrades 0644
 
 log_info "===== 13. MOTD ====="
 install_file "$REPO_ROOT/config/motd/99-server-status" /etc/update-motd.d/99-server-status 0755
