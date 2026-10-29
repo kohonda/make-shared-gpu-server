@@ -22,7 +22,22 @@ SCRATCH_DIR="${SCRATCH_DIR:-/scratch}"
 ARCHIVE_DIR="${ARCHIVE_DIR:-/archive}"
 UV_INSTALL_DIR="${UV_INSTALL_DIR:-/usr/local/bin}"
 PIXI_INSTALL_DIR="${PIXI_INSTALL_DIR:-/usr/local/bin}"
+SSHD_DROPIN_DIR="${SSHD_DROPIN_DIR:-/etc/ssh/sshd_config.d}"
+SSHD_DROPIN="00-lab.conf"
+SSHD_LEGACY_DROPIN="99-lab.conf"   # name used before 00-lab.conf; removed if present
 # --------------------------------------------
+
+# Install the sshd drop-in, drop the legacy one, and reload only a config that validates.
+harden_sshd() {
+    install_file "$REPO_ROOT/config/ssh/$SSHD_DROPIN" "$SSHD_DROPIN_DIR/$SSHD_DROPIN" 0644
+    if [[ -e "$SSHD_DROPIN_DIR/$SSHD_LEGACY_DROPIN" ]]; then
+        rm -f "$SSHD_DROPIN_DIR/$SSHD_LEGACY_DROPIN"
+        log_info "Removed legacy drop-in: $SSHD_DROPIN_DIR/$SSHD_LEGACY_DROPIN"
+    fi
+    sshd -t || die "sshd -t rejected the sshd configuration; not reloading ssh"
+    systemctl reload ssh
+    log_info "sshd configuration validated and reloaded"
+}
 
 require_root
 detect_ubuntu_version
@@ -38,8 +53,7 @@ ensure_apt_pkgs \
 systemctl enable --now ssh
 
 # Harden sshd: no password auth, no root login (Tailscale SSH is primary).
-install_file "$REPO_ROOT/config/ssh/99-lab.conf" /etc/ssh/sshd_config.d/99-lab.conf 0644
-systemctl reload ssh 2>/dev/null || systemctl reload sshd 2>/dev/null || true
+harden_sshd
 
 log_info "===== 2. gpustat ====="
 if cmd_exists gpustat; then
