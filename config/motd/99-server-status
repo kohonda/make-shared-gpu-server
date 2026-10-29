@@ -36,7 +36,7 @@ cat <<'EOF'
    * Check free GPUs with `gs` (gpustat) before launching
    * Shared model caches: $HF_HOME / $TORCH_HOME (under /shared/cache)
    * /scratch may be auto-cleaned (files >30 days)
-   * Questions or trouble? See ~/docs or ask the admin.
+   * Questions or trouble? Ask the admin (getting-started guide / FAQ).
 =========================================================
 
 EOF

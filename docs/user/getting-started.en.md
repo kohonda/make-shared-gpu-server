@@ -160,6 +160,13 @@ CUDA_VISIBLE_DEVICES=1,3  python train.py
 
 Always set this so you don't accidentally grab every GPU.
 
+### Sharing GPUs with others
+
+- Check free GPUs with `gs` before launching, and stay off GPUs someone else is using
+- Always restrict your job with `CUDA_VISIBLE_DEVICES` (above)
+- Do not fill a GPU's memory; when sharing a GPU, keep usage down (batch size, or PyTorch's `torch.cuda.set_per_process_memory_fraction`)
+- Stop finished jobs and idle Jupyter kernels so the GPU is released
+
 ### tmux for long jobs
 
 ```bash

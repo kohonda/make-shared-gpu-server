@@ -182,7 +182,14 @@ CUDA_VISIBLE_DEVICES=1,3 python train.py
 
 何も指定しないと **全 GPU が見えてしまう** ので、必ず指定してください。
 
-### 6.3 長時間ジョブは tmux で
+### 6.3 複数人で同時に使う時のマナー
+
+- 起動前に `gs` で空き GPU を確認し、他の人が使っている GPU には載せない
+- `CUDA_VISIBLE_DEVICES` で使う GPU を必ず絞る（上記）
+- GPU メモリを使い切らない。他の人と同じ GPU を共有する場合は、バッチサイズ等で使用量を抑える（PyTorch の `torch.cuda.set_per_process_memory_fraction` も使える）
+- 終わったジョブ・放置した Jupyter カーネルは止めて GPU を解放する
+
+### 6.4 長時間ジョブは tmux で
 
 ```bash
 tmux new -s train
