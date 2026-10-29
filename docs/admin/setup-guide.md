@@ -52,21 +52,24 @@ sudo ./scripts/setup.sh
 
 実行内容:
 
-1. 基本パッケージ（build-essential, tmux, htop, gpustat, openssh-server 等）
+1. 基本パッケージ（build-essential, tmux, htop, gpustat, openssh-server 等）と、全利用者向けの CLI ツール（ffmpeg, nvtop, git-lfs, rsync, vim, zip, p7zip-full, pigz, aria2）
 2. sshd ハードニング（`PasswordAuthentication no` 他）
-3. NVIDIA ドライバ存在チェック
-4. Docker Engine
-5. NVIDIA Container Toolkit
-6. uv / pixi（`/usr/local/bin` に配置）
-7. グループ `labmembers`、共有ディレクトリ（`/shared/{datasets,models,workspace}`, `/scratch`, `/archive`）
-8. 共有環境変数 (`/etc/profile.d/lab-defaults.sh`)
-9. `/etc/skel/` の dotfiles
-10. ufw 設定（SSH は tailscale0 のみ許可）
-11. unattended-upgrades（セキュリティのみ）
-12. MOTD
-13. `/scratch` クリーンアップ用 cron（コメントアウト状態）
+3. GitHub CLI（`gh`、公式 apt リポジトリから最新版）
+4. NVIDIA ドライバ存在チェック
+5. Docker Engine
+6. NVIDIA Container Toolkit
+7. uv / pixi（`/usr/local/bin` に配置）
+8. グループ `labmembers`、共有ディレクトリ（`/shared/{datasets,models,workspace}`, `/scratch`, `/archive`）
+9. 共有環境変数 (`/etc/profile.d/lab-defaults.sh`)
+10. `/etc/skel/` の dotfiles
+11. ufw 設定（SSH は tailscale0 のみ許可）
+12. unattended-upgrades（セキュリティのみ）
+13. MOTD
+14. `/scratch` クリーンアップ用 cron（コメントアウト状態）
 
 冪等です。何度実行しても安全。
+
+パッケージ構成は管理者の個人マシン用セットアップ [kohonda/make-ubuntu-setup](https://github.com/kohonda/make-ubuntu-setup) を参考にしています（サーバーからは clone も呼び出しもしません）。
 
 ### 環境変数で挙動を調整
 

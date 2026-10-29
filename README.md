@@ -7,6 +7,7 @@
 - **冪等なセットアップスクリプト**（Ubuntu 22.04 / 24.04 対応）
 - CUDA Toolkit はホストに入れず、`uv` / `pixi` 経由で PyTorch を使う運用
 - NVIDIA ドライバは **手動インストール前提**（`setup.sh` は存在チェックのみ）
+- 全利用者が使える CLI ツール（`gh`（公式 apt リポジトリの最新版）, ffmpeg, nvtop, git-lfs, rsync, vim, zip, p7zip-full, pigz, aria2）。構成は [kohonda/make-ubuntu-setup](https://github.com/kohonda/make-ubuntu-setup) を参考にしている
 - Docker + NVIDIA Container Toolkit
 - Tailscale + ufw による安全なリモートアクセス
 - Prometheus + Grafana + dcgm-exporter による監視（任意起動）
