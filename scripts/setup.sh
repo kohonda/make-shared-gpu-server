@@ -23,6 +23,8 @@ SCRATCH_DIR="${SCRATCH_DIR:-/scratch}"
 ARCHIVE_DIR="${ARCHIVE_DIR:-/archive}"
 UV_INSTALL_DIR="${UV_INSTALL_DIR:-/usr/local/bin}"
 PIXI_INSTALL_DIR="${PIXI_INSTALL_DIR:-/usr/local/bin}"
+UV_TOOL_DIR="${UV_TOOL_DIR:-/opt/uv-tools}"           # system-wide uv tool envs (gpustat)
+UV_TOOL_BIN_DIR="${UV_TOOL_BIN_DIR:-/usr/local/bin}"  # where uv tool links their commands
 SSHD_DROPIN_DIR="${SSHD_DROPIN_DIR:-/etc/ssh/sshd_config.d}"
 SSHD_DROPIN="00-lab.conf"
 SSHD_LEGACY_DROPIN="99-lab.conf"   # name used before 00-lab.conf; removed if present
@@ -67,15 +69,7 @@ systemctl enable --now ssh
 # Harden sshd: no password auth, no root login (Tailscale SSH is primary).
 harden_sshd
 
-log_info "===== 2. gpustat ====="
-if cmd_exists gpustat; then
-    log_info "gpustat already installed"
-else
-    log_info "Installing gpustat via pip (--break-system-packages)"
-    pip3 install --break-system-packages --quiet gpustat
-fi
-
-log_info "===== 3. NVIDIA driver check (manual install assumed) ====="
+log_info "===== 2. NVIDIA driver check (manual install assumed) ====="
 if ! cmd_exists nvidia-smi; then
     log_error "nvidia-smi not found. Install the NVIDIA driver manually before running this script."
     log_error "See docs/admin/setup-guide.md (NVIDIA driver section) for instructions."
@@ -87,7 +81,7 @@ if ! nvidia-smi >/dev/null 2>&1; then
 fi
 log_info "nvidia-smi OK: $(nvidia-smi --query-gpu=name --format=csv,noheader | head -n1)"
 
-log_info "===== 4. Docker Engine ====="
+log_info "===== 3. Docker Engine ====="
 if ! cmd_exists docker; then
     log_info "Adding Docker apt repository"
     install -m 0755 -d /etc/apt/keyrings
@@ -105,7 +99,7 @@ else
 fi
 ensure_group docker
 
-log_info "===== 5. NVIDIA Container Toolkit ====="
+log_info "===== 4. NVIDIA Container Toolkit ====="
 if ! pkg_installed nvidia-container-toolkit; then
     log_info "Adding NVIDIA Container Toolkit repository"
     curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey \
@@ -121,13 +115,22 @@ else
     log_info "nvidia-container-toolkit already installed"
 fi
 
-log_info "===== 6. uv ====="
+log_info "===== 5. uv ====="
 if [[ -x "$UV_INSTALL_DIR/uv" ]]; then
     log_info "uv already installed at $UV_INSTALL_DIR/uv"
 else
     log_info "Installing uv to $UV_INSTALL_DIR"
     curl -LsSf https://astral.sh/uv/install.sh \
         | env UV_INSTALL_DIR="$UV_INSTALL_DIR" UV_NO_MODIFY_PATH=1 sh
+fi
+
+log_info "===== 6. gpustat ====="
+if cmd_exists gpustat; then
+    log_info "gpustat already installed"
+else
+    log_info "Installing gpustat with uv tool (env in $UV_TOOL_DIR, command in $UV_TOOL_BIN_DIR)"
+    UV_TOOL_DIR="$UV_TOOL_DIR" UV_TOOL_BIN_DIR="$UV_TOOL_BIN_DIR" \
+        "$UV_INSTALL_DIR/uv" tool install gpustat
 fi
 
 log_info "===== 7. pixi ====="
