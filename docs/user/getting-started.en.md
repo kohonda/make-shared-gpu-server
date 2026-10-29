@@ -175,11 +175,12 @@ tmux attach -t train
 |---|---|---|
 | `/shared/datasets` | Datasets (read-only) | lab read |
 | `/shared/models`   | Pretrained models     | lab read |
-| `/shared/workspace`| Collaboration         | lab rw  |
+| `/shared/workspace`| Collaboration         | lab rw (including files others created) |
+| `/shared/cache`    | Shared HuggingFace / Torch caches (`$HF_HOME`, `$TORCH_HOME`) | lab rw |
 | `/scratch`         | Scratch (may be cleaned after 30 days) | world rw, sticky |
 | `/archive`         | Archive (admin writes)| lab read |
 
-`HF_HOME` is set to `/shared/models/huggingface` system-wide, so HuggingFace downloads are cached for everyone automatically.
+`HF_HOME` is set to `/shared/cache/huggingface` (and `TORCH_HOME` to `/shared/cache/torch`) system-wide, so HuggingFace downloads are cached for everyone automatically.
 
 ## 8. Docker
 

@@ -18,6 +18,7 @@ source "$SCRIPT_DIR/lib/common.sh"
 LAB_LOCAL_CIDR="${LAB_LOCAL_CIDR:-192.168.0.0/16}"
 SHARED_GROUP="${SHARED_GROUP:-labmembers}"
 SHARED_ROOT="${SHARED_ROOT:-/shared}"
+SHARED_CACHE_DIR="${SHARED_CACHE_DIR:-/shared/cache}"   # HF_HOME / TORCH_HOME live here
 SCRATCH_DIR="${SCRATCH_DIR:-/scratch}"
 ARCHIVE_DIR="${ARCHIVE_DIR:-/archive}"
 UV_INSTALL_DIR="${UV_INSTALL_DIR:-/usr/local/bin}"
@@ -26,6 +27,17 @@ SSHD_DROPIN_DIR="${SSHD_DROPIN_DIR:-/etc/ssh/sshd_config.d}"
 SSHD_DROPIN="00-lab.conf"
 SSHD_LEGACY_DROPIN="99-lab.conf"   # name used before 00-lab.conf; removed if present
 # --------------------------------------------
+
+# Make a directory every $SHARED_GROUP member can write, including files other
+# members created: setgid keeps the group, and the default ACL grants group rwx
+# to new entries regardless of the creator's umask.
+make_group_writable_dir() {
+    local dir="$1"
+    mkdir -p "$dir"
+    chgrp "$SHARED_GROUP" "$dir"
+    chmod 2775 "$dir"
+    setfacl -m "g:$SHARED_GROUP:rwx" -m "d:g:$SHARED_GROUP:rwx" "$dir"
+}
 
 # Install the sshd drop-in, drop the legacy one, and reload only a config that validates.
 harden_sshd() {
@@ -48,7 +60,7 @@ ensure_apt_pkgs \
     build-essential cmake git curl wget unzip ca-certificates gnupg lsb-release \
     tmux byobu htop ncdu tree jq \
     python3-pip ufw software-properties-common \
-    openssh-server net-tools
+    openssh-server net-tools acl
 # Ensure sshd is running and enabled on boot.
 systemctl enable --now ssh
 
@@ -137,9 +149,16 @@ mkdir -p "$ARCHIVE_DIR" "$SCRATCH_DIR"
 chgrp -R "$SHARED_GROUP" "$SHARED_ROOT/datasets" "$SHARED_ROOT/models"
 chmod 2755 "$SHARED_ROOT/datasets" "$SHARED_ROOT/models"
 
-# /shared/workspace: group read/write + setgid so new files inherit group
+# /shared/workspace: group read/write for files created by any member
 chgrp -R "$SHARED_GROUP" "$SHARED_ROOT/workspace"
-chmod 2775 "$SHARED_ROOT/workspace"
+make_group_writable_dir "$SHARED_ROOT/workspace"
+
+# Shared HuggingFace / Torch caches (HF_HOME / TORCH_HOME in profile.d)
+mkdir -p "$SHARED_CACHE_DIR"
+chgrp "$SHARED_GROUP" "$SHARED_CACHE_DIR"
+chmod 2755 "$SHARED_CACHE_DIR"
+make_group_writable_dir "$SHARED_CACHE_DIR/huggingface"
+make_group_writable_dir "$SHARED_CACHE_DIR/torch"
 
 # /scratch: world rw + sticky
 chmod 1777 "$SCRATCH_DIR"
@@ -189,7 +208,7 @@ echo "  Driver      : $(nvidia-smi --query-gpu=driver_version --format=csv,nohea
 echo "  Docker      : $(docker --version 2>/dev/null || echo missing)"
 echo "  uv          : $("$UV_INSTALL_DIR/uv" --version 2>/dev/null || echo missing)"
 echo "  pixi        : $("$PIXI_INSTALL_DIR/pixi" --version 2>/dev/null || echo missing)"
-echo "  Shared dirs : $SHARED_ROOT, $SCRATCH_DIR, $ARCHIVE_DIR"
+echo "  Shared dirs : $SHARED_ROOT, $SHARED_CACHE_DIR, $SCRATCH_DIR, $ARCHIVE_DIR"
 echo
 echo "Next steps:"
 echo "  - Add users:        sudo ./scripts/add-user.sh <username>"
