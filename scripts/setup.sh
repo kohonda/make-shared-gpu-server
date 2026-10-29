@@ -15,7 +15,6 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
 
 # ---------- configurable variables ----------
-LAB_LOCAL_CIDR="${LAB_LOCAL_CIDR:-192.168.0.0/16}"
 SHARED_GROUP="${SHARED_GROUP:-labmembers}"
 SHARED_ROOT="${SHARED_ROOT:-/shared}"
 SHARED_CACHE_DIR="${SHARED_CACHE_DIR:-/shared/cache}"   # HF_HOME / TORCH_HOME live here
@@ -178,7 +177,7 @@ install_file "$REPO_ROOT/config/skel/.bashrc"    /etc/skel/.bashrc    0644
 install_file "$REPO_ROOT/config/skel/.tmux.conf" /etc/skel/.tmux.conf 0644
 
 log_info "===== 11. Firewall (ufw) ====="
-bash "$REPO_ROOT/config/ufw/rules.sh" "$LAB_LOCAL_CIDR"
+bash "$REPO_ROOT/config/ufw/rules.sh"
 
 log_info "===== 12. Unattended upgrades (security only) ====="
 ensure_apt_pkgs unattended-upgrades

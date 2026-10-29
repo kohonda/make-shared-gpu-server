@@ -73,7 +73,7 @@ sudo ./scripts/setup.sh
 スクリプト冒頭の変数は環境変数で上書きできます。
 
 ```bash
-LAB_LOCAL_CIDR=10.0.0.0/8 sudo -E ./scripts/setup.sh
+SHARED_GROUP=mylab ARCHIVE_DIR=/mnt/archive sudo -E ./scripts/setup.sh
 ```
 
 ## 4. Tailscale のセットアップ

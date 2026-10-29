@@ -1,22 +1,19 @@
 #!/usr/bin/env bash
 #
 # Apply ufw rules for the lab GPU server.
-#   sudo ./config/ufw/rules.sh [LOCAL_CIDR]
-#
-# Defaults:
-#   LOCAL_CIDR = 192.168.0.0/16
+#   sudo ./config/ufw/rules.sh
 #
 # Policy:
 #   - default deny incoming, allow outgoing
 #   - SSH allowed ONLY on tailscale0 (Tailscale SSH handles auth)
 #   - Grafana (3000) / Prometheus (9090) allowed only on tailscale0
 #
-# The LOCAL_CIDR argument is reserved for future use (e.g. opening
-# non-SSH services to the lab LAN) and is currently unused.
+# When the tailscale0 interface does not exist yet, nothing is changed: enabling
+# ufw then would drop the LAN SSH session an admin is working over.
 #
 set -euo pipefail
 
-: "${1:-}"  # LOCAL_CIDR reserved; see header comment
+TAILSCALE_IFACE="tailscale0"
 
 if [[ ${EUID:-$(id -u)} -ne 0 ]]; then
     echo "[ERROR] must be run as root" >&2
@@ -26,6 +23,12 @@ fi
 if ! command -v ufw >/dev/null 2>&1; then
     echo "[ERROR] ufw is not installed" >&2
     exit 1
+fi
+
+if [[ ! -e "/sys/class/net/$TAILSCALE_IFACE" ]]; then
+    echo "[WARN] $TAILSCALE_IFACE not found: ufw left unchanged (not reset, not enabled)." >&2
+    echo "[WARN] Bring Tailscale up (scripts/setup-tailscale.sh), then re-run scripts/setup.sh." >&2
+    exit 0
 fi
 
 ufw --force reset >/dev/null
