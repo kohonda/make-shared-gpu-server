@@ -54,7 +54,9 @@ set_env_value "$ENV_FILE" "$BIND_ADDR_KEY" "$BIND_ADDR"
 log_info "Grafana / Prometheus will bind to $BIND_ADDR ($BIND_ADDR_KEY in $ENV_FILE)"
 
 log_info "Starting monitoring stack with docker compose"
-( cd "$MON_DIR" && docker compose --env-file .env up -d )
+# Pass the address in the environment too: Compose prefers an exported variable
+# over --env-file, so an inherited MON_BIND_ADDR could otherwise widen the bind.
+( cd "$MON_DIR" && env "$BIND_ADDR_KEY=$BIND_ADDR" docker compose --env-file .env up -d )
 
 log_info "Stack is up. Grafana: http://$BIND_ADDR:3000  Prometheus: http://$BIND_ADDR:9090"
 log_info "(Published on the Tailscale IP only; dcgm-exporter publishes no host port.)"
