@@ -64,11 +64,13 @@ cp config/monitoring/.env.example config/monitoring/.env
 $EDITOR config/monitoring/.env
 sudo ./scripts/setup-monitoring.sh
 
+# 管理者の個人環境（任意。日本語入力・Claude Code・Codex）: setup-guide §6 を参照
+
 # 6. ユーザー追加
 sudo ./scripts/add-user.sh alice
 ```
 
-詳細は [docs/admin/setup-guide.md](docs/admin/setup-guide.md)。
+詳細は [docs/admin/setup-guide.md](docs/admin/setup-guide.md)。管理者がサーバーのデスクトップで日本語入力・Claude Code・Codex を使いたい場合は、任意で [管理者の個人環境](docs/admin/setup-guide.md#6-管理者の個人環境任意) の手順を実行します（setup.sh の後、ユーザー追加の前）。
 
 ## ドキュメント
 
