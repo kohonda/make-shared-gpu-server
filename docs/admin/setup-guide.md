@@ -154,7 +154,33 @@ sudo ./scripts/setup-monitoring.sh
 
 Grafana の初期ログイン情報は `.env` の `GF_SECURITY_ADMIN_USER` / `GF_SECURITY_ADMIN_PASSWORD` で設定した値です。
 
-## 6. 初回ユーザー追加
+## 6. 管理者の個人環境（任意）
+
+管理者はサーバーにモニターをつないでデスクトップに直接ログインすることがあるため、管理者だけは日本語入力（変換キーで Mozc オン、無変換キーでオフ）と Claude Code / Codex を使えるようにしておくと便利です。これらは管理者の個人マシン用セットアップ [kohonda/make-ubuntu-setup](https://github.com/kohonda/make-ubuntu-setup) にすでにあるので（`60-fcitx5-mozc.sh`、`90-claude-code.sh`、`95-codex.sh`）、本リポジトリにはスクリプトを足さず、それを使います。
+
+`setup.sh` の後に、**root ではなく管理者自身として**実行します（`install.sh` は root での実行を拒否し、必要なところだけ `sudo` します）。
+
+```bash
+git clone https://github.com/kohonda/make-ubuntu-setup ~/make-ubuntu-setup
+cd ~/make-ubuntu-setup
+bash install.sh --skip 30 --skip 80 --skip 85
+```
+
+skip の理由:
+
+- **80（Docker）と 85（NVIDIA Container Toolkit）**: `setup.sh` がすでに入れているので外します。
+- **30（Slack）**: 任意です。必要なら `--skip 30` を外してください。
+- uv / pixi / gh は、すでに入っていればスキップされます。
+
+影響範囲:
+
+- インストール先は管理者のホーム（`~/.local/bin`、`~/.config/fcitx5`、`~/.claude`、`~/.codex`）なので、他のユーザーには影響しません（ホームは mode 750）。他のユーザーが Claude Code / Codex を使いたい場合は、各自が sudo なしの公式インストーラで入れて、自分のアカウントでログインしてください。
+- `/etc/environment.d/99-fcitx5.conf` だけはシステム全体の設定ですが、デスクトップセッションの IME 用の環境変数なので、SSH で使う人には影響しません。
+- 日本語入力が効くのは、サーバーのデスクトップに直接ログインしたときだけです。SSH 経由のときは手元の PC の IME が使われます。
+
+終わったら一度ログアウトして、ログインし直してください。
+
+## 7. 初回ユーザー追加
 
 ```bash
 sudo ./scripts/add-user.sh alice
@@ -164,7 +190,7 @@ sudo ./scripts/add-user.sh alice
 
 > ⚠️ `add-user.sh` は利用者を `docker` グループに入れます。**docker グループは実質 root 相当**です（`docker run -v /:/host` でホスト全体を読み書きできる）。信頼できるメンバーだけを追加してください。
 
-## 7. トラブルシューティング
+## 8. トラブルシューティング
 
 | 症状                                | 対処                                                                                       |
 | ----------------------------------- | ------------------------------------------------------------------------------------------ |
