@@ -18,8 +18,35 @@ TAILSCALE_TAGS="${TAILSCALE_TAGS:-tag:server}"   # must be listed in the ACL tag
 # --------------------------------------------
 
 # True when tailscaled reports BackendState "Running" (already logged in and up).
+# The full output is captured first: `grep -q` on a pipe could exit early and
+# SIGPIPE tailscale, which pipefail would turn into a false negative.
 tailscale_running() {
-    tailscale status --json 2>/dev/null | grep -Eq '"BackendState": *"Running"'
+    local status
+    status=$(tailscale status --json 2>/dev/null) || return 1
+    grep -Eq '"BackendState": *"Running"' <<<"$status"
+}
+
+# Print the tags this node (Self) carries, one per line.
+tailscale_self_tags() {
+    tailscale status --json 2>/dev/null \
+        | python3 -c 'import json,sys; print("\n".join(json.load(sys.stdin).get("Self",{}).get("Tags") or []))'
+}
+
+# Bring a node that is already up in line with this script's flags without
+# re-authenticating. Tags cannot be changed by `tailscale set`, so a missing
+# tag is reported with the command that fixes it.
+reconcile_running_node() {
+    tailscale set --ssh --hostname="$TAILSCALE_HOSTNAME"
+    log_info "Tailscale is already Running — applied --ssh and --hostname=$TAILSCALE_HOSTNAME. IP: $(tailscale ip -4 | head -n1)"
+    local tags tag
+    tags=$(tailscale_self_tags) || tags=""
+    for tag in ${TAILSCALE_TAGS//,/ }; do
+        if ! grep -qx "$tag" <<<"$tags"; then
+            log_warn "This node lacks $tag, so ACL rules with dst $tag do not match it."
+            log_warn "Fix: sudo tailscale up --ssh --hostname=$TAILSCALE_HOSTNAME --advertise-tags=$TAILSCALE_TAGS --force-reauth"
+            log_warn "(or add the tag on the machine page of the Tailscale admin console)"
+        fi
+    done
 }
 
 require_root
@@ -39,8 +66,7 @@ else
 fi
 
 if tailscale_running; then
-    log_info "Tailscale is already Running — skipping tailscale up. IP: $(tailscale ip -4 | head -n1)"
-    log_info "To change flags, run tailscale up again by hand with the full flag set."
+    reconcile_running_node
 elif [[ -n "$TAILSCALE_AUTHKEY" ]]; then
     log_info "Auth key provided — running tailscale up (non-interactive, tags: $TAILSCALE_TAGS)"
     tailscale up --ssh --authkey="$TAILSCALE_AUTHKEY" --hostname="$TAILSCALE_HOSTNAME" \
