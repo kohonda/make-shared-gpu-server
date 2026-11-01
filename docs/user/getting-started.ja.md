@@ -205,13 +205,13 @@ tmux attach -t train     # 戻る
 | `/shared/datasets` | データセット（読み取り専用） | labmembers 読み |
 | `/shared/models` | 学習済みモデル等 | labmembers 読み |
 | `/shared/workspace` | 共同作業用 | labmembers 読み書き（他人が作ったファイルも編集可） |
-| `/shared/cache` | HuggingFace / Torch の共有キャッシュ（`$HF_HOME`, `$TORCH_HOME`） | labmembers 読み書き |
+| `/shared/cache` | HuggingFace hub / Torch の共有キャッシュ（`$HF_HUB_CACHE`, `$TORCH_HOME`） | labmembers 読み書き |
 | `/scratch` | 一時ファイル | 全員 読み書き、**30日で削除されることがあります** |
 | `/archive` | アーカイブ（管理者が書く） | labmembers 読み |
 
 ### HuggingFace モデルの共有キャッシュ
 
-`HF_HOME` が `/shared/cache/huggingface`、`TORCH_HOME` が `/shared/cache/torch` に設定済みです。`from_pretrained()` で初回ダウンロードした重みは自動的に共有キャッシュに保存され、他の人もダウンロード不要で使えます。
+`HF_HUB_CACHE` が `/shared/cache/huggingface/hub`、`TORCH_HOME` が `/shared/cache/torch` に設定済みです。`from_pretrained()` で初回ダウンロードした重みは自動的に共有キャッシュに保存され、他の人もダウンロード不要で使えます。`HF_HOME` は各自のホーム（`~/.cache/huggingface`）のままなので、`hf auth login` で保存したトークンは自分だけのものです。
 
 **追加の設定は不要です。**
 

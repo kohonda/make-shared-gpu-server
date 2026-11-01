@@ -48,7 +48,7 @@ scripts/
 
 config/
   monitoring/           # Docker Compose stack: prometheus, grafana, dcgm-exporter, node-exporter
-  profile.d/            # System-wide env vars (HF_HOME, TORCH_HOME) -> /etc/profile.d/
+  profile.d/            # System-wide env vars (HF_HUB_CACHE, TORCH_HOME) -> /etc/profile.d/
   skel/                 # New user dotfiles (.bashrc, .tmux.conf) -> /etc/skel/
   motd/                 # Login banner (GPU status, disk usage) -> /etc/update-motd.d/
   ssh/                  # sshd hardening (no password, no root) -> /etc/ssh/sshd_config.d/00-lab.conf

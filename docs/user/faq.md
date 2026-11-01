@@ -16,7 +16,7 @@
 ## Q. 自分のホームの空き容量がない
 
 - HuggingFace モデルや torch チェックポイントが `~/.cache` を圧迫していませんか？
-- `HF_HOME` は `/shared/cache/huggingface` を指しているので、`from_pretrained()` の重みは共有側に行きます。手動で `~/.cache/huggingface` にキャッシュした分は削除してください。
+- `HF_HUB_CACHE` は `/shared/cache/huggingface/hub` を指しているので、`from_pretrained()` の重みは共有側に行きます。`~/.cache/huggingface/hub` に古いキャッシュが残っていれば削除してください（`~/.cache/huggingface/token` はログイン情報なので消さない）。
 - `du -sh ~/.cache/* | sort -h` で確認。
 
 ## Q. 他の人が GPU を使い切っていて学習できない

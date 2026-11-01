@@ -34,7 +34,7 @@ cat <<'EOF'
  Reminders:
    * Long jobs: run inside tmux / byobu
    * Check free GPUs with `gs` (gpustat) before launching
-   * Shared model caches: $HF_HOME / $TORCH_HOME (under /shared/cache)
+   * Shared model caches: $HF_HUB_CACHE / $TORCH_HOME (under /shared/cache)
    * /scratch may be auto-cleaned (files >30 days)
    * Questions or trouble? Ask the admin (getting-started guide / FAQ).
 =========================================================

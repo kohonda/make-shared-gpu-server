@@ -17,7 +17,7 @@ source "$SCRIPT_DIR/lib/common.sh"
 # ---------- configurable variables ----------
 SHARED_GROUP="${SHARED_GROUP:-labmembers}"
 SHARED_ROOT="${SHARED_ROOT:-/shared}"
-SHARED_CACHE_DIR="${SHARED_CACHE_DIR:-/shared/cache}"   # HF_HOME / TORCH_HOME live here
+SHARED_CACHE_DIR="${SHARED_CACHE_DIR:-/shared/cache}"   # HF_HUB_CACHE / TORCH_HOME live here
 SCRATCH_DIR="${SCRATCH_DIR:-/scratch}"
 ARCHIVE_DIR="${ARCHIVE_DIR:-/archive}"
 UV_INSTALL_DIR="${UV_INSTALL_DIR:-/usr/local/bin}"
@@ -38,6 +38,26 @@ make_group_writable_dir() {
     chgrp "$SHARED_GROUP" "$dir"
     chmod 2775 "$dir"
     setfacl -m "g:$SHARED_GROUP:rwx" -m "d:g:$SHARED_GROUP:rwx" "$dir"
+}
+
+# Extend make_group_writable_dir to entries that already exist under $1, for a
+# server set up before the ACLs: group rwX on everything (X keeps exec bits to
+# directories and already-executable files) and the default ACL on subdirectories.
+grant_group_write_recursive() {
+    local dir="$1"
+    setfacl -R -m "g:$SHARED_GROUP:rwX" "$dir"
+    find "$dir" -type d -exec setfacl -m "d:g:$SHARED_GROUP:rwx" {} +
+}
+
+# Install the profile.d file with @SHARED_CACHE_DIR@ rendered, so a
+# SHARED_CACHE_DIR override reaches users' HF_HUB_CACHE / TORCH_HOME.
+install_lab_profile() {
+    local rendered
+    rendered=$(mktemp)
+    sed "s|@SHARED_CACHE_DIR@|$SHARED_CACHE_DIR|g" \
+        "$REPO_ROOT/config/profile.d/lab-defaults.sh" >"$rendered"
+    install_file "$rendered" /etc/profile.d/lab-defaults.sh 0644
+    rm -f "$rendered"
 }
 
 # Install the sshd drop-in, drop the legacy one, and reload only a config that validates.
@@ -154,13 +174,16 @@ chmod 2755 "$SHARED_ROOT/datasets" "$SHARED_ROOT/models"
 # /shared/workspace: group read/write for files created by any member
 chgrp -R "$SHARED_GROUP" "$SHARED_ROOT/workspace"
 make_group_writable_dir "$SHARED_ROOT/workspace"
+grant_group_write_recursive "$SHARED_ROOT/workspace"
 
-# Shared HuggingFace / Torch caches (HF_HOME / TORCH_HOME in profile.d)
+# Shared HuggingFace hub / Torch caches (HF_HUB_CACHE / TORCH_HOME in profile.d)
 mkdir -p "$SHARED_CACHE_DIR"
 chgrp "$SHARED_GROUP" "$SHARED_CACHE_DIR"
 chmod 2755 "$SHARED_CACHE_DIR"
 make_group_writable_dir "$SHARED_CACHE_DIR/huggingface"
+make_group_writable_dir "$SHARED_CACHE_DIR/huggingface/hub"
 make_group_writable_dir "$SHARED_CACHE_DIR/torch"
+grant_group_write_recursive "$SHARED_CACHE_DIR"
 
 # /scratch: world rw + sticky
 chmod 1777 "$SCRATCH_DIR"
@@ -170,7 +193,7 @@ chgrp "$SHARED_GROUP" "$ARCHIVE_DIR"
 chmod 2750 "$ARCHIVE_DIR"
 
 log_info "===== 9. Shared environment variables ====="
-install_file "$REPO_ROOT/config/profile.d/lab-defaults.sh" /etc/profile.d/lab-defaults.sh 0644
+install_lab_profile
 
 log_info "===== 10. /etc/skel dotfiles ====="
 install_file "$REPO_ROOT/config/skel/.bashrc"    /etc/skel/.bashrc    0644

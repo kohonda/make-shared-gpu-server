@@ -108,8 +108,8 @@ sudo ./scripts/setup.sh
 5. uv（`/usr/local/bin` に配置）
 6. gpustat（`uv tool install`。環境は `/opt/uv-tools`、コマンドは `/usr/local/bin`）
 7. pixi（`/usr/local/bin` に配置）
-8. グループ `labmembers`、共有ディレクトリ（`/shared/{datasets,models,workspace}`, `/shared/cache/{huggingface,torch}`, `/scratch`, `/archive`）。`/shared/workspace` と `/shared/cache/*` は setgid と default ACL で、他人が作ったファイルも共同編集できます
-9. 共有環境変数 (`/etc/profile.d/lab-defaults.sh`。`HF_HOME` / `TORCH_HOME` を `/shared/cache` に向ける)
+8. グループ `labmembers`、共有ディレクトリ（`/shared/{datasets,models,workspace}`, `/shared/cache/{huggingface/hub,torch}`, `/scratch`, `/archive`）。`/shared/workspace` と `/shared/cache/*` は setgid と default ACL で、他人が作ったファイルも共同編集できます
+9. 共有環境変数 (`/etc/profile.d/lab-defaults.sh`。`HF_HUB_CACHE` / `TORCH_HOME` を `/shared/cache` に向ける。`HF_HOME` はトークンを含むので各自のホームのまま)
 10. `/etc/skel/` の dotfiles
 11. ufw 設定（SSH は tailscale0 のみ許可。tailscale0 が無ければ変更せず WARN）
 12. unattended-upgrades（セキュリティ更新。NVIDIA 関連パッケージは blacklist で除外）
