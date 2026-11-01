@@ -10,9 +10,8 @@
 
 ## 追加
 
-> **ユーザー名は Tailscale アカウントのメール prefix に合わせてください。**
-> Tailscale SSH のデフォルト ACL では、Tailscale ユーザーは自分のメールアドレスの `@` より前の部分と一致する Linux ユーザーにのみログインできます（例: `alice@example.com` → Linux ユーザー `alice`）。
-> Tailscale ACL をカスタマイズすれば任意のマッピングも可能ですが、通常は合わせておくのが最もシンプルです。
+> **ユーザー名は Tailscale アカウントのメール prefix に合わせておくと管理が楽です**（例: `alice@example.com` → Linux ユーザー `alice`）。
+> ただし、名前を合わせただけではログインできません。Tailscale のデフォルトの SSH ルールは `autogroup:self`（自分が所有するデバイスへの接続）向けで、`tag:server` 付きのサーバーには当たりません。ユーザーごとに下の「ACL に SSH ルールを追加」の明示ルールが必要です。
 
 ```bash
 sudo ./scripts/add-user.sh <username>
@@ -21,7 +20,10 @@ sudo ./scripts/add-user.sh <username>
 挙動:
 
 - ホームディレクトリ作成（`/home/<user>`, mode `750`）
-- グループ `labmembers`, `docker` に所属（Docker は sudo 不要で使えます）
+- グループ `labmembers`, `docker` に所属（Docker は sudo 不要で使えます。グループ名 `labmembers` は環境変数 `SHARED_GROUP` で変更可）
+- Tailscale が未インストール・停止中でも最後まで実行され、サマリーを表示します
+
+> ⚠️ **docker グループは実質 root 相当です。** `docker run -v /:/host ...` でホストの任意のファイルを読み書きでき、sudo が無くても root と同じことができます。「一般ユーザーは sudo を持たない」という前提はこのグループには当てはまりません。**信頼できるメンバーだけ**を追加してください。
 - **パスワードは `passwd -l` でロック**（Tailscale SSH 経由でのみログイン可）
 - `authorized_keys` は作成しません
 
@@ -128,4 +130,4 @@ sudo -u <username> ls -la ~/.ssh
    sudo install -o <user> -g <user> -m 600 pubkey.pub /home/<user>/.ssh/authorized_keys
    ```
 
-3. `config/ssh/99-lab.conf` は `PasswordAuthentication no` のままにしておくことを推奨
+3. `config/ssh/00-lab.conf` は `PasswordAuthentication no` のままにしておくことを推奨

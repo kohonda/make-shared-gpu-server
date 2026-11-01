@@ -1,0 +1,10 @@
+// Lab GPU server: keep unattended-upgrades away from NVIDIA packages.
+// The driver is managed by hand; an automatic upgrade of the user-space
+// libraries without the matching kernel module causes
+// "Failed to initialize NVML: Driver/library version mismatch".
+// Installed to /etc/apt/apt.conf.d/51-lab-unattended-upgrades by scripts/setup.sh
+Unattended-Upgrade::Package-Blacklist {
+    "nvidia-";
+    "libnvidia-";
+    "linux-modules-nvidia-";
+};

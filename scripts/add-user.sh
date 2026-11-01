@@ -13,6 +13,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/common.sh
 source "$SCRIPT_DIR/lib/common.sh"
 
+# ---------- configurable variables ----------
+SHARED_GROUP="${SHARED_GROUP:-labmembers}"
+# --------------------------------------------
+
 require_root
 
 if [[ $# -ne 1 ]]; then
@@ -28,11 +32,11 @@ if id "$USERNAME" >/dev/null 2>&1; then
     die "User already exists: $USERNAME"
 fi
 
-ensure_group labmembers
+ensure_group "$SHARED_GROUP"
 ensure_group docker
 
 log_info "Creating user: $USERNAME"
-useradd -m -s /bin/bash -G labmembers,docker "$USERNAME"
+useradd -m -s /bin/bash -G "$SHARED_GROUP",docker "$USERNAME"
 
 # Lock the password (no password login possible).
 passwd -l "$USERNAME" >/dev/null
@@ -41,7 +45,7 @@ passwd -l "$USERNAME" >/dev/null
 chmod 750 "/home/$USERNAME"
 
 TS_HOSTNAME=$(hostname)
-TS_IP=$(tailscale ip -4 2>/dev/null)
+TS_IP=$(tailscale ip -4 2>/dev/null) || true   # Tailscale may be absent or stopped
 
 cat <<EOF
 

@@ -1,3 +1,5 @@
+@AGENTS.md
+
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
@@ -46,10 +48,11 @@ scripts/
 
 config/
   monitoring/           # Docker Compose stack: prometheus, grafana, dcgm-exporter, node-exporter
-  profile.d/            # System-wide env vars (HF_HOME, TORCH_HOME) -> /etc/profile.d/
+  profile.d/            # System-wide env vars (HF_HUB_CACHE, TORCH_HOME) -> /etc/profile.d/
   skel/                 # New user dotfiles (.bashrc, .tmux.conf) -> /etc/skel/
   motd/                 # Login banner (GPU status, disk usage) -> /etc/update-motd.d/
-  ssh/                  # sshd hardening (no password, no root) -> /etc/ssh/sshd_config.d/
+  ssh/                  # sshd hardening (no password, no root) -> /etc/ssh/sshd_config.d/00-lab.conf
+  apt/                  # unattended-upgrades NVIDIA blacklist -> /etc/apt/apt.conf.d/
   ufw/                  # Firewall rules (SSH+monitoring on tailscale0 only)
 
 docs/
@@ -67,4 +70,3 @@ Scripts source `scripts/lib/common.sh` for shared functions. Config files under 
 - Support both Ubuntu 22.04 and 24.04 (detect via `lsb_release`)
 - Configuration variables go at the top of each script, not hardcoded inline
 - User docs are bilingual (Japanese and English)
-- The implementation spec lives at `.claude/prompts/make_env.md`

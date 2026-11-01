@@ -6,3 +6,4 @@ config/monitoring/.env
 .idea/
 *.swp
 .DS_Store
+/.worktrees/
