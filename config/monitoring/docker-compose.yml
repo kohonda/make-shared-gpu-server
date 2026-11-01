@@ -7,8 +7,11 @@
 #   dcgm-exporter  - NVIDIA GPU metrics
 #   node-exporter  - host CPU/memory/disk metrics
 #
-# All services bind to 127.0.0.1 by default; ufw exposes Grafana / Prometheus
-# only on the tailscale0 interface.
+# Docker publishes ports with its own iptables rules, which bypass ufw. So
+# Grafana and Prometheus bind only to the host's Tailscale IP (MON_BIND_ADDR,
+# written to .env by scripts/setup-monitoring.sh), and dcgm-exporter publishes
+# no port at all: Prometheus scrapes it as dcgm-exporter:9400 over the compose
+# network. node-exporter runs in host network mode, so ufw does apply to it.
 
 services:
   prometheus:
@@ -24,7 +27,7 @@ services:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.retention.time=30d
     ports:
-      - "9090:9090"
+      - "${MON_BIND_ADDR:?set by setup-monitoring.sh}:9090:9090"
 
   grafana:
     image: grafana/grafana:11.2.0
@@ -41,7 +44,7 @@ services:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
     ports:
-      - "3000:3000"
+      - "${MON_BIND_ADDR:?set by setup-monitoring.sh}:3000:3000"
 
   dcgm-exporter:
     image: nvcr.io/nvidia/k8s/dcgm-exporter:3.3.7-3.5.0-ubuntu22.04
@@ -52,8 +55,6 @@ services:
       NVIDIA_VISIBLE_DEVICES: all
     cap_add:
       - SYS_ADMIN
-    ports:
-      - "9400:9400"
 
   node-exporter:
     image: prom/node-exporter:v1.8.2

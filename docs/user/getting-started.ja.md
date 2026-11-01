@@ -182,7 +182,14 @@ CUDA_VISIBLE_DEVICES=1,3 python train.py
 
 何も指定しないと **全 GPU が見えてしまう** ので、必ず指定してください。
 
-### 6.3 長時間ジョブは tmux で
+### 6.3 複数人で同時に使う時のマナー
+
+- 起動前に `gs` で空き GPU を確認し、他の人が使っている GPU には載せない
+- `CUDA_VISIBLE_DEVICES` で使う GPU を必ず絞る（上記）
+- GPU メモリを使い切らない。他の人と同じ GPU を共有する場合は、バッチサイズ等で使用量を抑える（PyTorch の `torch.cuda.set_per_process_memory_fraction` も使える）
+- 終わったジョブ・放置した Jupyter カーネルは止めて GPU を解放する
+
+### 6.4 長時間ジョブは tmux で
 
 ```bash
 tmux new -s train
@@ -197,13 +204,14 @@ tmux attach -t train     # 戻る
 |---|---|---|
 | `/shared/datasets` | データセット（読み取り専用） | labmembers 読み |
 | `/shared/models` | 学習済みモデル等 | labmembers 読み |
-| `/shared/workspace` | 共同作業用 | labmembers 読み書き |
+| `/shared/workspace` | 共同作業用 | labmembers 読み書き（他人が作ったファイルも編集可） |
+| `/shared/cache` | HuggingFace hub / Torch の共有キャッシュ（`$HF_HUB_CACHE`, `$TORCH_HOME`） | labmembers 読み書き |
 | `/scratch` | 一時ファイル | 全員 読み書き、**30日で削除されることがあります** |
 | `/archive` | アーカイブ（管理者が書く） | labmembers 読み |
 
 ### HuggingFace モデルの共有キャッシュ
 
-`HF_HOME` が `/shared/models/huggingface` に設定済みです。`from_pretrained()` で初回ダウンロードした重みは自動的に共有キャッシュに保存され、他の人もダウンロード不要で使えます。
+`HF_HUB_CACHE` が `/shared/cache/huggingface/hub`、`TORCH_HOME` が `/shared/cache/torch` に設定済みです。`from_pretrained()` で初回ダウンロードした重みは自動的に共有キャッシュに保存され、他の人もダウンロード不要で使えます。`HF_HOME` は各自のホーム（`~/.cache/huggingface`）のままなので、`hf auth login` で保存したトークンは自分だけのものです。
 
 **追加の設定は不要です。**
 

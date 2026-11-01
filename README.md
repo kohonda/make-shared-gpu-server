@@ -27,6 +27,8 @@
 │   ├── motd/
 │   ├── profile.d/
 │   ├── skel/
+│   ├── ssh/                # sshd ハードニング (00-lab.conf)
+│   ├── apt/                # unattended-upgrades の NVIDIA blacklist
 │   ├── monitoring/         # docker compose stack
 │   └── ufw/
 └── docs/
@@ -48,12 +50,14 @@ nvidia-smi   # 動作確認
 git clone <REPO_URL> ~/make-shared-gpu-server
 cd ~/make-shared-gpu-server
 
-# 3. メインセットアップ
-sudo ./scripts/setup.sh
-
-# 4. Tailscale
+# 3. Tailscale（setup.sh より先に。ufw は SSH を tailscale0 からしか通さない）
+#    事前に ACL の tagOwners に tag:server を定義しておく（setup-guide §3）
 sudo ./scripts/setup-tailscale.sh
 sudo tailscale up --ssh --hostname="$(hostname)" --advertise-tags=tag:server
+# ヘッドレスなら: TAILSCALE_AUTHKEY=tskey-auth-XXXX sudo -E ./scripts/setup-tailscale.sh
+
+# 4. メインセットアップ
+sudo ./scripts/setup.sh
 
 # 5. 監視（任意）
 cp config/monitoring/.env.example config/monitoring/.env

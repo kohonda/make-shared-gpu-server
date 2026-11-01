@@ -160,6 +160,13 @@ CUDA_VISIBLE_DEVICES=1,3  python train.py
 
 Always set this so you don't accidentally grab every GPU.
 
+### Sharing GPUs with others
+
+- Check free GPUs with `gs` before launching, and stay off GPUs someone else is using
+- Always restrict your job with `CUDA_VISIBLE_DEVICES` (above)
+- Do not fill a GPU's memory; when sharing a GPU, keep usage down (batch size, or PyTorch's `torch.cuda.set_per_process_memory_fraction`)
+- Stop finished jobs and idle Jupyter kernels so the GPU is released
+
 ### tmux for long jobs
 
 ```bash
@@ -175,11 +182,12 @@ tmux attach -t train
 |---|---|---|
 | `/shared/datasets` | Datasets (read-only) | lab read |
 | `/shared/models`   | Pretrained models     | lab read |
-| `/shared/workspace`| Collaboration         | lab rw  |
+| `/shared/workspace`| Collaboration         | lab rw (including files others created) |
+| `/shared/cache`    | Shared HuggingFace hub / Torch caches (`$HF_HUB_CACHE`, `$TORCH_HOME`) | lab rw |
 | `/scratch`         | Scratch (may be cleaned after 30 days) | world rw, sticky |
 | `/archive`         | Archive (admin writes)| lab read |
 
-`HF_HOME` is set to `/shared/models/huggingface` system-wide, so HuggingFace downloads are cached for everyone automatically.
+`HF_HUB_CACHE` is set to `/shared/cache/huggingface/hub` (and `TORCH_HOME` to `/shared/cache/torch`) system-wide, so HuggingFace downloads are cached for everyone automatically. `HF_HOME` stays in your home (`~/.cache/huggingface`), so a token saved by `hf auth login` is yours alone.
 
 ## 8. Docker
 
