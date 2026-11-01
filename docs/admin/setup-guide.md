@@ -101,24 +101,27 @@ sudo ./scripts/setup.sh
 
 実行内容:
 
-1. 基本パッケージ（build-essential, tmux, htop, acl, openssh-server 等）と sshd ハードニング（`PasswordAuthentication no` 他）
-2. NVIDIA ドライバ存在チェック
-3. Docker Engine
-4. NVIDIA Container Toolkit
-5. uv（`/usr/local/bin` に配置）
-6. gpustat（`uv tool install`。環境は `/opt/uv-tools`、コマンドは `/usr/local/bin`）
-7. pixi（`/usr/local/bin` に配置）
-8. グループ `labmembers`、共有ディレクトリ（`/shared/{datasets,models,workspace}`, `/shared/cache/{huggingface/hub,torch}`, `/scratch`, `/archive`）。`/shared/workspace` と `/shared/cache/*` は setgid と default ACL で、他人が作ったファイルも共同編集できます
-9. 共有環境変数 (`/etc/profile.d/lab-defaults.sh`。`HF_HUB_CACHE` / `TORCH_HOME` を `/shared/cache` に向ける。`HF_HOME` はトークンを含むので各自のホームのまま)
-10. `/etc/skel/` の dotfiles
-11. ufw 設定（SSH は tailscale0 のみ許可。tailscale0 が無ければ変更せず WARN）
-12. unattended-upgrades（セキュリティ更新。NVIDIA 関連パッケージは blacklist で除外）
-13. MOTD
-14. `/scratch` クリーンアップ用 cron（コメントアウト状態）
+1. 基本パッケージ（build-essential, tmux, htop, acl, openssh-server 等）と全利用者向けの CLI ツール（ffmpeg, nvtop, git-lfs, rsync, vim, zip, p7zip-full, pigz, aria2）、sshd ハードニング（`PasswordAuthentication no` 他）
+2. GitHub CLI（`gh`、公式 apt リポジトリから最新版）
+3. NVIDIA ドライバ存在チェック
+4. Docker Engine
+5. NVIDIA Container Toolkit
+6. uv（`/usr/local/bin` に配置）
+7. gpustat（`uv tool install`。環境は `/opt/uv-tools`、コマンドは `/usr/local/bin`）
+8. pixi（`/usr/local/bin` に配置）
+9. グループ `labmembers`、共有ディレクトリ（`/shared/{datasets,models,workspace}`, `/shared/cache/{huggingface/hub,torch}`, `/scratch`, `/archive`）。`/shared/workspace` と `/shared/cache/*` は setgid と default ACL で、他人が作ったファイルも共同編集できます
+10. 共有環境変数 (`/etc/profile.d/lab-defaults.sh`。`HF_HUB_CACHE` / `TORCH_HOME` を `/shared/cache` に向ける。`HF_HOME` はトークンを含むので各自のホームのまま)
+11. `/etc/skel/` の dotfiles
+12. ufw 設定（SSH は tailscale0 のみ許可。tailscale0 が無ければ変更せず WARN）
+13. unattended-upgrades（セキュリティ更新。NVIDIA 関連パッケージは blacklist で除外）
+14. MOTD
+15. `/scratch` クリーンアップ用 cron（コメントアウト状態）
 
 > NVIDIA ドライバは手動管理です。unattended-upgrades は `nvidia-*` / `libnvidia-*` / `linux-modules-nvidia-*` を更新しません（ユーザー空間ライブラリだけが上がると "Driver/library version mismatch" になるため）。ドライバの更新は §1 の手順で手動で行い、再起動してください。
 
 冪等です。何度実行しても安全。
+
+パッケージ構成は管理者の個人マシン用セットアップ [kohonda/make-ubuntu-setup](https://github.com/kohonda/make-ubuntu-setup) を参考にしています（サーバーからは clone も呼び出しもしません）。
 
 ### 環境変数で挙動を調整
 

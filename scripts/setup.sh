@@ -81,14 +81,33 @@ ensure_apt_pkgs \
     build-essential cmake git curl wget unzip ca-certificates gnupg lsb-release \
     tmux byobu htop ncdu tree jq \
     python3-pip ufw software-properties-common \
-    openssh-server net-tools acl
+    openssh-server net-tools acl \
+    ffmpeg nvtop git-lfs rsync vim zip p7zip-full pigz aria2
 # Ensure sshd is running and enabled on boot.
 systemctl enable --now ssh
 
 # Harden sshd: no password auth, no root login (Tailscale SSH is primary).
 harden_sshd
 
-log_info "===== 2. NVIDIA driver check (manual install assumed) ====="
+log_info "===== 2. GitHub CLI (gh) ====="
+# Ubuntu's own gh package is outdated (2.4 on 22.04); use the official repo.
+# https://github.com/cli/cli/blob/trunk/docs/install_linux.md
+if ! cmd_exists gh; then
+    log_info "Adding GitHub CLI apt repository"
+    install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+        -o /etc/apt/keyrings/githubcli-archive-keyring.gpg
+    chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+    cat >/etc/apt/sources.list.d/github-cli.list <<EOF
+deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main
+EOF
+    apt-get update -qq
+    ensure_apt_pkgs gh
+else
+    log_info "gh already installed"
+fi
+
+log_info "===== 3. NVIDIA driver check (manual install assumed) ====="
 if ! cmd_exists nvidia-smi; then
     log_error "nvidia-smi not found. Install the NVIDIA driver manually before running this script."
     log_error "See docs/admin/setup-guide.md (NVIDIA driver section) for instructions."
@@ -100,7 +119,7 @@ if ! nvidia-smi >/dev/null 2>&1; then
 fi
 log_info "nvidia-smi OK: $(nvidia-smi --query-gpu=name --format=csv,noheader | head -n1)"
 
-log_info "===== 3. Docker Engine ====="
+log_info "===== 4. Docker Engine ====="
 if ! cmd_exists docker; then
     log_info "Adding Docker apt repository"
     install -m 0755 -d /etc/apt/keyrings
@@ -118,7 +137,7 @@ else
 fi
 ensure_group docker
 
-log_info "===== 4. NVIDIA Container Toolkit ====="
+log_info "===== 5. NVIDIA Container Toolkit ====="
 if ! pkg_installed nvidia-container-toolkit; then
     log_info "Adding NVIDIA Container Toolkit repository"
     curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey \
@@ -134,7 +153,7 @@ else
     log_info "nvidia-container-toolkit already installed"
 fi
 
-log_info "===== 5. uv ====="
+log_info "===== 6. uv ====="
 if [[ -x "$UV_INSTALL_DIR/uv" ]]; then
     log_info "uv already installed at $UV_INSTALL_DIR/uv"
 else
@@ -143,7 +162,7 @@ else
         | env UV_INSTALL_DIR="$UV_INSTALL_DIR" UV_NO_MODIFY_PATH=1 sh
 fi
 
-log_info "===== 6. gpustat ====="
+log_info "===== 7. gpustat ====="
 if cmd_exists gpustat; then
     log_info "gpustat already installed"
 else
@@ -152,7 +171,7 @@ else
         "$UV_INSTALL_DIR/uv" tool install gpustat
 fi
 
-log_info "===== 7. pixi ====="
+log_info "===== 8. pixi ====="
 if [[ -x "$PIXI_INSTALL_DIR/pixi" ]]; then
     log_info "pixi already installed at $PIXI_INSTALL_DIR/pixi"
 else
@@ -161,7 +180,7 @@ else
         | env PIXI_HOME=/usr/local PIXI_NO_PATH_UPDATE=1 bash
 fi
 
-log_info "===== 8. Shared groups & directories ====="
+log_info "===== 9. Shared groups & directories ====="
 ensure_group "$SHARED_GROUP"
 
 mkdir -p "$SHARED_ROOT/datasets" "$SHARED_ROOT/models" "$SHARED_ROOT/workspace"
@@ -192,17 +211,17 @@ chmod 1777 "$SCRATCH_DIR"
 chgrp "$SHARED_GROUP" "$ARCHIVE_DIR"
 chmod 2750 "$ARCHIVE_DIR"
 
-log_info "===== 9. Shared environment variables ====="
+log_info "===== 10. Shared environment variables ====="
 install_lab_profile
 
-log_info "===== 10. /etc/skel dotfiles ====="
+log_info "===== 11. /etc/skel dotfiles ====="
 install_file "$REPO_ROOT/config/skel/.bashrc"    /etc/skel/.bashrc    0644
 install_file "$REPO_ROOT/config/skel/.tmux.conf" /etc/skel/.tmux.conf 0644
 
-log_info "===== 11. Firewall (ufw) ====="
+log_info "===== 12. Firewall (ufw) ====="
 bash "$REPO_ROOT/config/ufw/rules.sh"
 
-log_info "===== 12. Unattended upgrades (security only) ====="
+log_info "===== 13. Unattended upgrades (security only) ====="
 ensure_apt_pkgs unattended-upgrades
 # Enable automatic updates
 cat >/etc/apt/apt.conf.d/20auto-upgrades <<'EOF'
@@ -215,10 +234,10 @@ EOF
 install_file "$REPO_ROOT/config/apt/51-lab-unattended-upgrades" \
     /etc/apt/apt.conf.d/51-lab-unattended-upgrades 0644
 
-log_info "===== 13. MOTD ====="
+log_info "===== 14. MOTD ====="
 install_file "$REPO_ROOT/config/motd/99-server-status" /etc/update-motd.d/99-server-status 0755
 
-log_info "===== 14. /scratch cleanup cron (commented out by default) ====="
+log_info "===== 15. /scratch cleanup cron (commented out by default) ====="
 cat >/etc/cron.d/scratch-cleanup <<'EOF'
 # Auto-delete files in /scratch older than 30 days.
 # Uncomment the line below to enable.
