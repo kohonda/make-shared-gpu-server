@@ -5,7 +5,8 @@
 #
 # Assumes Tailscale SSH is the primary access path. No initial password
 # and no authorized_keys are set up: the account is locked. Access is
-# granted by inviting the user to the tailnet.
+# granted by sharing this machine with the user (Tailscale Machines -> Share);
+# inviting the user to the tailnet is the alternative route.
 #
 set -euo pipefail
 
@@ -46,6 +47,10 @@ chmod 750 "/home/$USERNAME"
 
 TS_HOSTNAME=$(hostname)
 TS_IP=$(tailscale ip -4 2>/dev/null) || true   # Tailscale may be absent or stopped
+# MagicDNS FQDN (<host>.<tailnet>.ts.net); shared machines are reachable only by it or the IP.
+TS_FQDN=$(tailscale status --json 2>/dev/null \
+    | python3 -c 'import json,sys; print(json.load(sys.stdin).get("Self",{}).get("DNSName","").rstrip("."))' \
+    2>/dev/null) || true   # Tailscale may be absent or stopped
 
 cat <<EOF
 
@@ -56,12 +61,14 @@ cat <<EOF
   Password : LOCKED (Tailscale SSH is the access path)
 
 SSH CONNECTION (tell the user):
-  ssh $USERNAME@${TS_HOSTNAME:-<server-tailnet-name>}
+  ssh $USERNAME@${TS_FQDN:-<host>.<tailnet>.ts.net}
   ssh $USERNAME@${TS_IP:-<tailscale-ip>}
+  ssh $USERNAME@${TS_HOSTNAME:-<server-tailnet-name>}   # invite route only
 
 NEXT STEPS:
-  1. Invite the user to the lab tailnet so they can reach this host
-     via Tailscale SSH. No password, no SSH key required.
+  1. Share this machine with the user: Tailscale admin console ->
+     Machines -> this machine -> Share (see docs/admin/add-user.md).
+     No password, no SSH key required.
   2. Add the user to the Tailscale ACL SSH rules:
      https://login.tailscale.com/admin/acls/file
   3. To open a shell as this user from the admin account:
