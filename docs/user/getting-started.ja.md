@@ -13,7 +13,7 @@
 
 ## 2. SSH 接続
 
-サーバーへのアクセスは **Tailscale SSH** で行います。パスワードも SSH 鍵も不要です。認証は tailnet にログインしている自分のアカウント（Google 等）で自動的に行われます。
+サーバーへのアクセスは **Tailscale SSH** で行います。パスワードも SSH 鍵も不要です。認証は Tailscale にログインしている自分のアカウント（Google 等）で自動的に行われます。
 
 ### 2.1 Tailscale をインストール（クライアント側）
 
@@ -22,17 +22,32 @@
 インストール後、初回はログインが必要です:
 
 - **デスクトップアプリ（Windows / macOS）**: アプリを起動するとブラウザが開き、Google アカウント等でログインできます
-- **Linux CLI**: 以下のコマンドを実行し、表示される URL をブラウザで開いてログインします
+- **Linux CLI**: 以下のコマンドを実行し、表示される URL をブラウザで開いてログインします（tailscaled の状態を変えるコマンドなので `sudo` が必要です）
 
 ```bash
-tailscale login
+sudo tailscale login
 ```
 
-ログイン後、`tailscale status` で `<server-name>` がリストに出ていれば準備完了です。
+ログイン後、共有を承認していれば、`tailscale status` の一覧に共有されたサーバー（例: `gpu01`）が出ます。出ていれば準備完了です。
 
 ```bash
 tailscale status
 ```
+
+#### 管理者から tailnet に招待された場合（Fast User Switching）
+
+**Share（マシンの共有）で受け入れられた人には、この手順は不要です。** 管理者から lab の tailnet そのものに招待され、かつ自分の個人 tailnet も使っている人だけが対象です。Tailscale のクライアントには複数のアカウントを登録しておき、切り替えて使えます（出典: [Fast user switching](https://tailscale.com/kb/1225/fast-user-switching)）。
+
+- **アカウントを追加する**
+  - macOS: メニューバーの Tailscale アイコン → **Settings** → **Accounts** → **Add Account**
+  - Windows: タスクトレイの Tailscale アイコン → 現在のアカウント → **Add another account**
+  - Linux: `sudo tailscale login`（開いたブラウザで lab の tailnet に招待されたアカウントでログインする）
+- **切り替える**
+  - macOS / Windows: 上のメニューから使うアカウントを選ぶ
+  - Linux: `sudo tailscale switch <account>`
+- **一覧を見る**: `tailscale switch --list`（`*` が今アクティブなアカウント。Linux では `sudo` を付ける）
+
+> ⚠️ 同時にアクティブにできるのは **1アカウントだけ** です。個人の tailnet に切り替えている間は、lab のサーバーには届きません。サーバーを使うときは lab の tailnet に戻してください。
 
 ### 2.2 Tailscale の基本操作
 
@@ -41,17 +56,19 @@ tailscale status
 よく使うコマンド:
 
 ```bash
-tailscale status          # tailnet 内のマシン一覧と接続状態を確認
-tailscale ip -4           # 自分の Tailscale IPv4 アドレスを表示
-tailscale login           # 初回ログイン（ブラウザで認証）
-tailscale logout          # ログアウト（再度 login が必要になる）
-tailscale up              # VPN 接続を開始（切断後の再接続時に使う）
-tailscale down            # VPN 接続を切断（サーバーへのアクセスも切れる）
-tailscale ping <server>   # 特定マシンへの疎通確認
+tailscale status                     # 自分の tailnet のマシンと、共有されたマシンの一覧・接続状態を確認
+tailscale ip -4                      # 自分の Tailscale IPv4 アドレスを表示
+sudo tailscale login                 # 初回ログイン（ブラウザで認証）
+sudo tailscale logout                # ログアウト（再度 login が必要になる）
+sudo tailscale up                    # VPN 接続を開始（切断後の再接続時に使う）
+sudo tailscale down                  # VPN 接続を切断（サーバーへのアクセスも切れる）
+tailscale ping <host>.<tailnet>.ts.net   # 特定マシンへの疎通確認（共有されたサーバーは FQDN か IP で指定）
 ```
 
+`sudo` が要るのは Linux CLI で tailscaled の状態を変えるコマンド（`login` / `logout` / `up` / `down`）だけです。`status` / `ip` / `ping` は `sudo` なしで動きます。デスクトップアプリ（Windows / macOS）ではメニューから同じ操作ができます。
+
 - **PC起動時**: デスクトップアプリが自動起動する設定であれば、ログインと同時に VPN が張られます
-- **`tailscale down` した場合**: 明示的に `tailscale up` するまで VPN は切断されたままです
+- **`sudo tailscale down` した場合**: 明示的に `sudo tailscale up` するまで VPN は切断されたままです
 - **ネットワーク切替時**（Wi-Fi → 有線など）: Tailscale が自動的に再接続します
 
 ### 2.3 アカウントの用意
@@ -66,7 +83,9 @@ ssh <username>@<host>.<tailnet>.ts.net
 # Tailscale IP でも接続できます: ssh alice@100.x.x.x
 ```
 
-共有（Share）で受け入れられた場合、サーバーには **FQDN（`<host>.<tailnet>.ts.net`）か Tailscale IP でしか届きません**。`ssh alice@gpu01` のような短い名前は、lab の tailnet に招待された場合だけ使えます。正確な FQDN は管理者から伝えられる接続先か、`tailscale status` で確認してください。
+共有（Share）で受け入れられた場合、サーバーには **FQDN（`<host>.<tailnet>.ts.net`）か Tailscale IP でしか届きません**。正確な FQDN は管理者から伝えられる接続先を使ってください。
+
+> 💡 lab の tailnet に招待された人（tailnet メンバー）は、`ssh alice@gpu01` のような短い名前でも接続できます。
 
 初回接続時、ブラウザが開いて Tailscale の認証が求められることがあります（tailnet にログイン済みであれば自動で承認されます）。パスワードや鍵の入力は一切ありません。
 
@@ -79,7 +98,7 @@ Host gpu01
     ServerAliveInterval 60
 ```
 
-> ⚠️ `HostName` にクライアント自身と同じ名前を書かないでください（解決が自分自身に向いて `Connection refused` になります）。`tailscale status` で表示される名前か、`tailscale ip -4` で取得した IP アドレス（例: `100.x.x.x`）を使ってください。
+> ⚠️ `HostName` には、管理者から伝えられたサーバーの **FQDN（`<host>.<tailnet>.ts.net`）か Tailscale IP（例: `100.x.x.x`）** を書いてください。`tailscale status` に表示される短い名前（`gpu01`）は、共有で受け入れられた人には届きません。また、クライアント自身と同じ名前を書くと解決が自分自身に向いて `Connection refused` になります。
 
 ### 2.5 sudo / パスワードが必要な場面
 
@@ -91,7 +110,7 @@ Host gpu01
 
 1. VS Code の拡張 `Remote - SSH` をインストール
 2. 左下の青いボタン → **Remote-SSH: Connect to Host...**
-3. 一覧に `gpu01`（`~/.ssh/config` に書いた名前）が出るので選択
+3. 一覧に `gpu01`（`~/.ssh/config` に書いた名前。`HostName` は FQDN か Tailscale IP）が出るので選択。`~/.ssh/config` を書いていない場合は `alice@gpu01.<tailnet>.ts.net` を直接入力します
 4. 初回はリモート側に VS Code Server がインストールされます（数十秒）
 5. 完了後、`File → Open Folder` でホームディレクトリを開けます
 
@@ -250,7 +269,7 @@ jupyter lab --no-browser --port 8888 --ip 127.0.0.1
 ```
 
 ```bash
-# ローカル側
+# ローカル側（gpu01 は ~/.ssh/config のエイリアス。書いていなければ alice@gpu01.<tailnet>.ts.net）
 ssh -N -L 8888:localhost:8888 gpu01
 # → http://localhost:8888 をブラウザで開く
 ```
@@ -261,7 +280,7 @@ VS Code Remote SSH なら、`.ipynb` をそのまま開くだけで Jupyter サ�
 
 ## 10. Grafana ダッシュボード
 
-監視スタックが起動していれば、Tailscale 経由で `http://<server>:3000` にアクセスできます。GPU 使用率、温度、メモリ、ホスト負荷を確認できます。
+監視スタックが起動していれば、Tailscale 経由で `http://<host>.<tailnet>.ts.net:3000`（または `http://<Tailscale IP>:3000`）にアクセスできます。GPU 使用率、温度、メモリ、ホスト負荷を確認できます。
 ログイン用のユーザー名とパスワードはサーバー管理者に確認してください。
 
 ## 11. トラブルシュート / FAQ

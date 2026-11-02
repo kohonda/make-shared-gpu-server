@@ -13,7 +13,7 @@ Welcome to the lab GPU server. This guide walks first-time users through connect
 
 ## 2. SSH access
 
-Access uses **Tailscale SSH**. No password, no SSH key — authentication is done via your tailnet identity (Google account, etc.).
+Access uses **Tailscale SSH**. No password, no SSH key — authentication is done via the account you are logged in to Tailscale with (Google account, etc.).
 
 ### 2.1 Install Tailscale (your laptop)
 
@@ -22,17 +22,32 @@ Download from <https://tailscale.com/download> and install the app. Receive the 
 After installation, log in for the first time:
 
 - **Desktop app (Windows / macOS)**: launch the app — a browser opens for Google account login
-- **Linux CLI**: run the command below and open the printed URL in a browser
+- **Linux CLI**: run the command below and open the printed URL in a browser (it changes the state of tailscaled, so it needs `sudo`)
 
 ```bash
-tailscale login
+sudo tailscale login
 ```
 
-After login, run `tailscale status`. If `<server-name>` shows up, you're ready.
+After login, once you have accepted the share, the shared server (e.g. `gpu01`) appears in the `tailscale status` list. If it shows up, you're ready.
 
 ```bash
 tailscale status
 ```
+
+#### If the admin invited you to the lab tailnet (Fast User Switching)
+
+**You do not need this if you were onboarded via a share (Share).** It is only for people the admin invited to the lab tailnet itself who also use their own personal tailnet. The Tailscale client can hold several accounts and switch between them (source: [Fast user switching](https://tailscale.com/kb/1225/fast-user-switching)).
+
+- **Add an account**
+  - macOS: Tailscale icon in the menu bar → **Settings** → **Accounts** → **Add Account**
+  - Windows: Tailscale icon in the system tray → the current account → **Add another account**
+  - Linux: `sudo tailscale login` (log in, in the browser that opens, with the account invited to the lab tailnet)
+- **Switch**
+  - macOS / Windows: pick the account from the menu above
+  - Linux: `sudo tailscale switch <account>`
+- **List accounts**: `tailscale switch --list` (`*` marks the active account; on Linux add `sudo`)
+
+> ⚠️ Only **one account can be active at a time**. While you are switched to your personal tailnet, the lab servers are unreachable. Switch back to the lab tailnet to use them.
 
 ### 2.2 Tailscale basics
 
@@ -41,17 +56,19 @@ Once logged in, a VPN tunnel is established automatically and you can reach the 
 Common commands:
 
 ```bash
-tailscale status          # list machines and connection state in the tailnet
-tailscale ip -4           # show your Tailscale IPv4 address
-tailscale login           # first-time login (opens browser for auth)
-tailscale logout          # log out (requires login again to reconnect)
-tailscale up              # start VPN (use after a disconnect)
-tailscale down            # stop VPN (server becomes unreachable)
-tailscale ping <server>   # check connectivity to a specific machine
+tailscale status                     # list your tailnet's machines and machines shared with you, with connection state
+tailscale ip -4                      # show your Tailscale IPv4 address
+sudo tailscale login                 # first-time login (opens browser for auth)
+sudo tailscale logout                # log out (requires login again to reconnect)
+sudo tailscale up                    # start VPN (use after a disconnect)
+sudo tailscale down                  # stop VPN (server becomes unreachable)
+tailscale ping <host>.<tailnet>.ts.net   # check connectivity to a specific machine (use the FQDN or IP for a shared server)
 ```
 
+On the Linux CLI only the commands that change the state of tailscaled (`login` / `logout` / `up` / `down`) need `sudo`. `status` / `ip` / `ping` work without it. The desktop apps (Windows / macOS) offer the same actions in their menu.
+
 - **On boot**: if the desktop app is set to auto-start, VPN is established at login
-- **After `tailscale down`**: VPN stays off until you explicitly run `tailscale up`
+- **After `sudo tailscale down`**: VPN stays off until you explicitly run `sudo tailscale up`
 - **Network changes** (Wi-Fi → Ethernet, etc.): Tailscale reconnects automatically
 
 ### 2.3 Get an account
@@ -66,7 +83,9 @@ ssh <username>@<host>.<tailnet>.ts.net
 # You can also use the Tailscale IP: ssh alice@100.x.x.x
 ```
 
-If you were onboarded via a share (Share), the server is reachable **only by its FQDN (`<host>.<tailnet>.ts.net`) or its Tailscale IP**. A short name such as `ssh alice@gpu01` works only if you were invited to the lab tailnet. Get the exact FQDN from the connection details the admin gives you, or from `tailscale status`.
+If you were onboarded via a share (Share), the server is reachable **only by its FQDN (`<host>.<tailnet>.ts.net`) or its Tailscale IP**. Use the exact FQDN from the connection details the admin gives you.
+
+> 💡 People invited to the lab tailnet (tailnet members) can also connect with a short name such as `ssh alice@gpu01`.
 
 The first connection may open a browser for Tailscale auth (auto-approved if you're already logged in). No password / key prompt.
 
@@ -79,7 +98,7 @@ Host gpu01
     ServerAliveInterval 60
 ```
 
-> ⚠️ Do NOT set `HostName` to a name that resolves to your own machine (would give `Connection refused`). Use the name from `tailscale status` or the IP from `tailscale ip -4` (e.g. `100.x.x.x`).
+> ⚠️ Set `HostName` to the server's **FQDN (`<host>.<tailnet>.ts.net`) or Tailscale IP (e.g. `100.x.x.x`)** from the admin. The short name shown in `tailscale status` (`gpu01`) does not reach the server if you were onboarded via a share. Also, do NOT set it to a name that resolves to your own machine (would give `Connection refused`).
 
 ### 2.5 sudo / password
 
@@ -89,7 +108,7 @@ Regular users have no password (locked with `passwd -l`). If you ever need `sudo
 
 1. Install the **Remote - SSH** extension
 2. Bottom-left blue button → **Remote-SSH: Connect to Host...**
-3. Pick `gpu01`
+3. Pick `gpu01` (the name in your `~/.ssh/config`, whose `HostName` is the FQDN or Tailscale IP). Without a `~/.ssh/config` entry, type `alice@gpu01.<tailnet>.ts.net` directly
 4. First connect installs VS Code Server remotely (~30s)
 5. `File → Open Folder` to browse your home
 
@@ -219,7 +238,7 @@ jupyter lab --no-browser --port 8888 --ip 127.0.0.1
 ```
 
 ```bash
-# laptop
+# laptop (gpu01 is the ~/.ssh/config alias; without it use alice@gpu01.<tailnet>.ts.net)
 ssh -N -L 8888:localhost:8888 gpu01
 # open http://localhost:8888
 ```
@@ -228,7 +247,7 @@ VS Code Remote SSH handles `.ipynb` natively. For full remote desktop, set up no
 
 ## 10. Grafana
 
-If the monitoring stack is running, browse `http://<server>:3000` over Tailscale to see GPU utilization, temperature, memory and host load.
+If the monitoring stack is running, browse `http://<host>.<tailnet>.ts.net:3000` (or `http://<Tailscale IP>:3000`) over Tailscale to see GPU utilization, temperature, memory and host load.
 Log in with the username and password provided by your server administrator.
 
 ## 11. FAQ
