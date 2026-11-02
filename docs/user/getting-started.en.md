@@ -17,7 +17,7 @@ Access uses **Tailscale SSH**. No password, no SSH key — authentication is don
 
 ### 2.1 Install Tailscale (your laptop)
 
-Download from <https://tailscale.com/download> and install the app. Ask the admin for a tailnet invite.
+Download from <https://tailscale.com/download> and install the app. Receive the machine share (Share) invitation from the admin and accept it. You keep using your own tailnet, and only the shared server becomes visible.
 
 After installation, log in for the first time:
 
@@ -61,10 +61,12 @@ Ask the admin to create your Linux account (e.g. `alice`) on the server. You don
 ### 2.4 Connect
 
 ```bash
-ssh <username>@<server-tailnet-name>
-# e.g. ssh alice@gpu01
+ssh <username>@<host>.<tailnet>.ts.net
+# e.g. ssh alice@gpu01.<tailnet>.ts.net
 # You can also use the Tailscale IP: ssh alice@100.x.x.x
 ```
+
+If you were onboarded via a share (Share), the server is reachable **only by its FQDN (`<host>.<tailnet>.ts.net`) or its Tailscale IP**. A short name such as `ssh alice@gpu01` works only if you were invited to the lab tailnet. Get the exact FQDN from the connection details the admin gives you, or from `tailscale status`.
 
 The first connection may open a browser for Tailscale auth (auto-approved if you're already logged in). No password / key prompt.
 
@@ -72,7 +74,7 @@ Optional `~/.ssh/config`:
 
 ```text
 Host gpu01
-    HostName gpu01              # tailnet machine name (see `tailscale status`)
+    HostName gpu01.<tailnet>.ts.net   # the server's FQDN (see `tailscale status`)
     User <your-username>
     ServerAliveInterval 60
 ```

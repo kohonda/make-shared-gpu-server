@@ -17,7 +17,7 @@
 
 ### 2.1 Tailscale をインストール（クライアント側）
 
-[公式サイト](https://tailscale.com/download) からアプリをインストールしてください。tailnet への招待は管理者から受け取ってください。
+[公式サイト](https://tailscale.com/download) からアプリをインストールしてください。管理者からマシンの共有（Share）の招待を受け取り、承認してください。自分の tailnet のまま使え、共有されたサーバーだけが見えるようになります。
 
 インストール後、初回はログインが必要です:
 
@@ -61,10 +61,12 @@ tailscale ping <server>   # 特定マシンへの疎通確認
 ### 2.4 接続
 
 ```bash
-ssh <username>@<server-tailnet-name>
-# 例: ssh alice@gpu01
+ssh <username>@<host>.<tailnet>.ts.net
+# 例: ssh alice@gpu01.<tailnet>.ts.net
 # Tailscale IP でも接続できます: ssh alice@100.x.x.x
 ```
+
+共有（Share）で受け入れられた場合、サーバーには **FQDN（`<host>.<tailnet>.ts.net`）か Tailscale IP でしか届きません**。`ssh alice@gpu01` のような短い名前は、lab の tailnet に招待された場合だけ使えます。正確な FQDN は管理者から伝えられる接続先か、`tailscale status` で確認してください。
 
 初回接続時、ブラウザが開いて Tailscale の認証が求められることがあります（tailnet にログイン済みであれば自動で承認されます）。パスワードや鍵の入力は一切ありません。
 
@@ -72,7 +74,7 @@ ssh <username>@<server-tailnet-name>
 
 ```text
 Host gpu01
-    HostName gpu01              # tailnet 内のマシン名（tailscale status で確認）
+    HostName gpu01.<tailnet>.ts.net   # サーバーの FQDN（tailscale status で確認）
     User <your-username>
     ServerAliveInterval 60
 ```
