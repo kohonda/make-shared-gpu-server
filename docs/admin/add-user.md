@@ -5,16 +5,27 @@
 1. サーバーに Linux アカウントを作る（`add-user.sh`）
 2. Tailscale 管理画面の **Machines → 対象サーバー → Share** で、利用者のメールアドレスに共有する
 3. 利用者が共有を承認する
-4. ACL の `ssh` にその利用者のルールを足す
-5. 利用者は FQDN（`<host>.<tailnet>.ts.net`）か Tailscale IP（`100.x.x.x`）で `ssh <username>@...` する
+4. ポリシーファイルの `ssh` セクションにその利用者のルールを足す（新しい利用者のときだけ）
+5. 利用者は FQDN（`<host>.<tailnet>.ts.net`）か Tailscale IP（`100.x.x.x`）で `ssh <username>@...` する。短い名前（`gpu01`）では届かない
 
-パスワードも SSH 鍵も手渡し不要です。利用者は自分の tailnet のまま使え、見えるのは共有されたサーバーだけです。lab の tailnet に招待する方法は「[代替: tailnet に招待する](#代替-tailnet-に招待する)」に残してありますが、標準は Share です。
+パスワードも SSH 鍵も手渡し不要です。利用者は自分の tailnet のまま使え、見えるのは共有されたサーバーだけです。tailnet のユーザー数も消費しません。一般の利用者はこの Share だけで受け入れます。lab の tailnet への招待は、管理者を増やすときや特別なユーザー向けのオプションです（「[オプション: tailnet に招待する（管理者・特別なユーザー向け）](#オプション-tailnet-に招待する管理者特別なユーザー向け)」）。
+
+> **新しい GPU サーバーを足したとき**: そのサーバーを使わせる利用者ごとに、新しいサーバー上で `add-user.sh` を実行し、新しいサーバーを Share します。ポリシーファイルの `ssh` ルールは足さなくてよいです。新しいサーバーにも `tag:server` が付くので、既存のルールの対象に入ります（`ssh` ルールを足すのは新しい利用者を追加するときだけ）。
+
+## 用語: ポリシーファイルの `grants` と `ssh`
+
+Tailscale 管理画面の **Access controls**（<https://login.tailscale.com/admin/acls/file>）で編集するのは、tailnet の**ポリシーファイル全体**です。このうち、本手順に関わるのは次の2つのセクションです。
+
+- **`grants`**: 「どこからどこへ通信できるか」（ネットワーク到達）を決めます。旧来の `acls` セクションの後継で、Tailscale は grants を推奨しています（[grants のドキュメント](https://tailscale.com/kb/1324/grants): "The recommended best practice is to favor grants for most use cases"）。本 repo の例では `acls` は使わず、`grants` を使います
+- **`ssh`**: 「誰がどのサーバーに、どの Linux ユーザーとしてログインできるか」（Tailscale SSH のログイン可否）を決める別のセクションです。`grants` で通信が許されていても、`ssh` にルールが無ければ Tailscale SSH ではログインできません
+
+本ドキュメントで「`ssh` ルール」と書いているのは、このポリシーファイルの `ssh` セクションのエントリのことです。`tagOwners`（どのタグを誰が付けられるか）も同じポリシーファイルにあります（[setup-guide §3](setup-guide.md)）。
 
 ## 追加
 
 > **ユーザー名は Tailscale アカウントのメール prefix に合わせておくと管理が楽です**（例: `alice@example.com` → Linux ユーザー `alice`）。
-> ただし、名前を合わせただけではログインできません。Tailscale のデフォルトの SSH ルールは `autogroup:self`（自分が所有するデバイスへの接続）向けで、`tag:server` 付きのサーバーには当たりません。ユーザーごとに下の「ACL に SSH ルールを追加」の明示ルールが必要です。
-> ACL の `users` に書くのは、**`add-user.sh` に渡した名前そのもの**です。メール prefix と違う名前で作った場合は、作った名前の方を書きます。
+> ただし、名前を合わせただけではログインできません。Tailscale のデフォルトの SSH ルールは `autogroup:self`（自分が所有するデバイスへの接続）向けで、`tag:server` 付きのサーバーには当たりません。ユーザーごとに、下の「ポリシーファイルの `ssh` セクションにルールを追加」の明示ルールが必要です。
+> `ssh` ルールの `users` に書くのは、**`add-user.sh` に渡した名前そのもの**です。メール prefix と違う名前で作った場合は、作った名前の方を書きます。
 
 ```bash
 sudo ./scripts/add-user.sh <username>
@@ -30,7 +41,7 @@ sudo ./scripts/add-user.sh <username>
 - **パスワードは `passwd -l` でロック**（Tailscale SSH 経由でのみログイン可）
 - `authorized_keys` は作成しません
 
-作成後、下の「Share でサーバーを共有 & ACL 登録」に進んでください。
+作成後、下の「Share でサーバーを共有し、`ssh` ルールを追加（標準）」に進んでください。
 
 ## sudo を使わせたい場合
 
@@ -43,7 +54,7 @@ sudo usermod -aG sudo <username>
 
 以後、そのユーザーは `sudo` コマンド入力時にパスワードを求められます。
 
-## Share でサーバーを共有 & ACL 登録（標準）
+## Share でサーバーを共有し、`ssh` ルールを追加（標準）
 
 ### 1. サーバーを共有する
 
@@ -51,11 +62,11 @@ sudo usermod -aG sudo <username>
 - **Machines → 対象サーバー → Share** を開き、利用者の Tailscale アカウントのメールアドレスに共有する
 - 利用者が共有を承認すると、利用者の tailnet にそのサーバーが現れる
 
-### 2. ACL に SSH ルールを追加
+### 2. ポリシーファイルの `ssh` セクションにルールを追加
 
-共有しただけでは SSH できません。Tailscale の Access Controls に SSH 許可ルールも追加します。
+共有しただけでは SSH できません。ポリシーファイルの `ssh` セクションに、その利用者のログイン許可ルールも追加します（新しい利用者のときだけ。既存の利用者に別のサーバーを共有するときは不要です）。
 
-ACL 編集画面: <https://login.tailscale.com/admin/acls/file>
+ポリシーファイルの編集画面（Access controls）: <https://login.tailscale.com/admin/acls/file>
 
 `ssh` セクションに以下のようなエントリを追加してください:
 
@@ -96,22 +107,24 @@ tailscale status
 
 - **FQDN が必須**: 共有先からは短い名前が解決されません。FQDN か 100.x の IP で接続してもらいます
 - **サーバーごとの共有**: 共有はマシン単位です。GPU サーバーを増やしたら、利用者ごとに共有し直してください
-- **ACL の `dst` は `tag:server` のままでよい**: 実際に届くのは共有されたマシンだけなので、アクセス範囲は Share で決まります
+- **`ssh` ルールの `dst` は `tag:server` のままでよい**: 実際に届くのは共有されたマシンだけなので、アクセス範囲は Share で決まります
 - **両方の tailnet のポリシー**: 利用者側の tailnet でも、そのサーバーへの接続が許されている必要があります（デフォルトのポリシーなら許可されています）。管理者側の `grants` も、共有先ユーザーからの接続を許していること（`src` が `*` か `autogroup:shared`）を確認してください
-- **利用終了時**: Share の解除（Machines → 対象サーバー → Share から共有を外す）と、ACL の `ssh` ルールの削除の両方を行います
+- **利用終了時**: Share の解除（Machines → 対象サーバー → Share から共有を外す）と、ポリシーファイルの `ssh` ルールの削除の両方を行います
 
-## 代替: tailnet に招待する
+## オプション: tailnet に招待する（管理者・特別なユーザー向け）
 
-利用者を lab の tailnet のメンバーとして招待する方法です。標準は上の Share です。
+管理者を増やすときや、特別なユーザーを lab の tailnet のメンバーとして招待する方法です。**一般の利用者には使わず、上の Share で受け入れてください。**
 
 > ⚠️ **今の `grants` が `* → *`（`"src": ["*"], "dst": ["*"]`）のままだと、招待した人は tailnet の全マシンに届きます。** GPU サーバー以外の管理者のマシンにも接続できる状態になるので、招待する前にこの点を理解しておいてください。
 
 1. 管理画面 <https://login.tailscale.com/admin/users> を開く
 2. **Users → Invite users** から、利用者のメールアドレスで招待する
 3. 利用者が招待を承認し、lab の tailnet にログインする
-4. 上の「2. ACL に SSH ルールを追加」と同じルールを足す（書き方は Share の場合と同じ）
+4. 上の「2. ポリシーファイルの `ssh` セクションにルールを追加」と同じルールを足す（書き方は Share の場合と同じ）
 
 招待した場合は、tailnet 内の短い名前（`ssh <username>@gpu01`）でも接続できます。
+
+招待した人が個人の tailnet も使っている場合は、Tailscale アプリで lab の tailnet に切り替えてもらう必要があります。利用者ガイドの「管理者から tailnet に招待された場合（Fast User Switching）」（[ja](../user/getting-started.ja.md) / [en](../user/getting-started.en.md)）を案内してください。
 
 ## 削除
 
@@ -124,7 +137,7 @@ sudo userdel -r <username>
 sudo userdel <username>
 ```
 
-Tailscale 側からも当該ユーザーを外すのを忘れずに（Share の場合は共有の解除、招待した場合は tailnet からの削除。どちらの場合も ACL の `ssh` ルールを消す）。
+Tailscale 側からも当該ユーザーを外すのを忘れずに（Share の場合は共有の解除、招待した場合は tailnet からの削除。どちらの場合もポリシーファイルの `ssh` ルールを消す）。
 
 ## 一時的な無効化
 

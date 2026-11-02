@@ -51,7 +51,7 @@ git clone <REPO_URL> ~/make-shared-gpu-server
 cd ~/make-shared-gpu-server
 
 # 3. Tailscale（setup.sh より先に。ufw は SSH を tailscale0 からしか通さない）
-#    事前に ACL の tagOwners に tag:server を定義しておく（setup-guide §3）
+#    事前にポリシーファイル（Access controls）の tagOwners に tag:server を定義しておく（setup-guide §3）
 sudo ./scripts/setup-tailscale.sh
 sudo tailscale up --ssh --hostname="$(hostname)" --advertise-tags=tag:server
 # ヘッドレスなら: TAILSCALE_AUTHKEY=tskey-auth-XXXX sudo -E ./scripts/setup-tailscale.sh
@@ -66,7 +66,7 @@ sudo ./scripts/setup-monitoring.sh
 
 # 管理者の個人環境（任意。日本語入力・Claude Code・Codex）: setup-guide §6 を参照
 
-# 6. ユーザー追加
+# 6. ユーザー追加（その後、管理画面の Machines → このサーバー → Share で利用者に共有。docs/admin/add-user.md）
 sudo ./scripts/add-user.sh alice
 ```
 
