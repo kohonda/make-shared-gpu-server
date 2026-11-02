@@ -14,7 +14,7 @@ source "$SCRIPT_DIR/lib/common.sh"
 # ---------- configurable variables ----------
 TAILSCALE_AUTHKEY="${TAILSCALE_AUTHKEY:-}"
 TAILSCALE_HOSTNAME="${TAILSCALE_HOSTNAME:-$(hostname)}"
-TAILSCALE_TAGS="${TAILSCALE_TAGS:-tag:server}"   # must be listed in the ACL tagOwners
+TAILSCALE_TAGS="${TAILSCALE_TAGS:-tag:server}"   # must be listed in the policy file's tagOwners
 # --------------------------------------------
 
 # True when tailscaled reports BackendState "Running" (already logged in and up).
@@ -42,7 +42,7 @@ reconcile_running_node() {
     tags=$(tailscale_self_tags) || tags=""
     for tag in ${TAILSCALE_TAGS//,/ }; do
         if ! grep -qx "$tag" <<<"$tags"; then
-            log_warn "This node lacks $tag, so ACL rules with dst $tag do not match it."
+            log_warn "This node lacks $tag, so policy-file ssh rules with dst $tag do not match it."
             log_warn "Fix: sudo tailscale up --ssh --hostname=$TAILSCALE_HOSTNAME --advertise-tags=$TAILSCALE_TAGS --force-reauth"
             log_warn "(or add the tag on the machine page of the Tailscale admin console)"
         fi
@@ -84,7 +84,7 @@ Run the following command to authenticate this host:
 
   --ssh              : enables Tailscale SSH (no separate key required)
   --hostname=...     : registers under the current hostname
-  --advertise-tags=..: assigns a tag for ACL-based SSH access control
+  --advertise-tags=..: assigns the tag that the policy file's ssh rules match
 
 After running, follow the printed URL to log in via your tailnet admin.
 

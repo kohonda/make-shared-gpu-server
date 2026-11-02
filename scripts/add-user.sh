@@ -6,7 +6,7 @@
 # Assumes Tailscale SSH is the primary access path. No initial password
 # and no authorized_keys are set up: the account is locked. Access is
 # granted by sharing this machine with the user (Tailscale Machines -> Share);
-# inviting the user to the tailnet is the alternative route.
+# inviting the user to the tailnet is an option for admins / special users only.
 #
 set -euo pipefail
 
@@ -63,15 +63,18 @@ cat <<EOF
 SSH CONNECTION (tell the user):
   ssh $USERNAME@${TS_FQDN:-<host>.<tailnet>.ts.net}
   ssh $USERNAME@${TS_IP:-<tailscale-ip>}
-  ssh $USERNAME@${TS_HOSTNAME:-<server-tailnet-name>}   # invite route only
+  ssh $USERNAME@${TS_HOSTNAME:-<host>}   (tailnet members only)
 
 NEXT STEPS:
-  1. Share this machine with the user: Tailscale admin console ->
-     Machines -> this machine -> Share (see docs/admin/add-user.md).
-     No password, no SSH key required.
-  2. Add the user to the Tailscale ACL SSH rules:
+  1. Share this machine with the user's email: Tailscale admin console ->
+     Machines -> this machine -> Share. No password, no SSH key required.
+  2. If this is a new user, add a rule to the policy file's "ssh" section
+     (users: ["$USERNAME"], dst: ["tag:server"]):
      https://login.tailscale.com/admin/acls/file
-  3. To open a shell as this user from the admin account:
-         sudo -i -u $USERNAME
+  3. Tell the user the FQDN above: ssh $USERNAME@${TS_FQDN:-<host>.<tailnet>.ts.net}
+  (admins / special users only: invite to the tailnet instead, see docs/admin/add-user.md)
+
+  To open a shell as this user from the admin account:
+      sudo -i -u $USERNAME
 ===============================================
 EOF
