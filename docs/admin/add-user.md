@@ -139,6 +139,12 @@ sudo userdel <username>
 
 Tailscale 側からも当該ユーザーを外すのを忘れずに（Share の場合は共有の解除、招待した場合は tailnet からの削除。どちらの場合もポリシーファイルの `ssh` ルールを消す）。
 
+削除は自動では検知されないので、管理者メモ（[setup-guide §7](setup-guide.md)）のユーザー一覧を手動で更新します。
+
+```bash
+sudo ./scripts/update-admin-notes.sh
+```
+
 ## 一時的な無効化
 
 ```bash
