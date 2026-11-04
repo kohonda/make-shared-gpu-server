@@ -450,17 +450,19 @@ id "$NEW"              # gid= の () 内が $NEW なら groupmod は済んでい
 
 **3. 自動では変わらない場所を直す**
 
-`usermod` は次の場所を変更しません。`crontab` は移さないと動かなくなります。表示名（デスクトップのログイン画面などに出る名前）も古いままなので、`chfn` で変えます。
+`usermod` は次の場所を変更しません。`crontab` は移さないと動かなくなります。表示名（デスクトップのログイン画面などに出る名前）も古いままなので、`chfn` で変えます。表示名もアカウント名と同じにします。ログイン画面には表示名が出るので、本名を入れると管理者アカウントと見分けにくくなるためです。
 
 ```bash
 sudo sed -i "s/^$OLD:/$NEW:/" /etc/subuid /etc/subgid
 sudo test -e "/var/spool/cron/crontabs/$OLD" \
   && sudo mv "/var/spool/cron/crontabs/$OLD" "/var/spool/cron/crontabs/$NEW"
-sudo chfn -f "Kohei Honda" "$NEW"
+sudo chfn -f "$NEW" "$NEW"
 sudo grep -rnw "$OLD" /etc/sudoers.d /etc/gdm3/custom.conf
 ```
 
 `grep` の結果のうち、直すのはアカウント名として使っている行だけです（例: `user ALL=...`、`AutomaticLogin = user`）。コメント行は直さなくて構いません。sudoers は `sudo visudo -f <file>` で編集します。
+
+ログイン画面に古い表示名が残るときは、ログアウトか再起動を試し、`/var/lib/AccountsService/users/<アカウント名>` を確認します。
 
 **4. ログインできるようにする**
 
