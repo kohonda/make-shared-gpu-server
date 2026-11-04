@@ -169,8 +169,22 @@ sudo ./scripts/setup.sh
 13. unattended-upgrades（セキュリティ更新。NVIDIA 関連パッケージは blacklist で除外）
 14. MOTD
 15. `/scratch` クリーンアップ用 cron（コメントアウト状態）
+16. 管理者の更新スクリプト（`sudo` で実行した管理者アカウントのホーム直下に `update-and-reboot.sh` と `update-and-poweroff.sh`）
 
 > NVIDIA ドライバは手動管理です。unattended-upgrades は `nvidia-*` / `libnvidia-*` / `linux-modules-nvidia-*` を更新しません（ユーザー空間ライブラリだけが上がると "Driver/library version mismatch" になるため）。ドライバの更新は §1 の手順で手動で行い、再起動してください。
+
+### 管理者の更新スクリプト
+
+どちらも `apt update` と `apt upgrade -y` の後に、再起動または電源オフを行います。`apt` が失敗したら、そこで止まります。
+
+```bash
+~/update-and-reboot.sh     # 更新して再起動
+~/update-and-poweroff.sh   # 更新して電源オフ
+```
+
+- **NVIDIA ドライバも更新されます。** unattended-upgrades とは違い、除外していません。更新に失敗すると GPU が使えなくなることがあるので、起動後に `nvidia-smi` を確認してください。動かなければ §1 の手順で入れ直します。
+- **他の利用者のジョブも止まります。** 実行前に `who` と `nvidia-smi` で、使っている人がいないか確認してください。
+- 同じ名前のファイルがすでにある場合、`setup.sh` は上書きせず、実行権限だけを付けます。内容が違うときは WARN が出ます。新しい内容にしたいときは、古いファイルを消してから `setup.sh` を再実行してください。
 
 冪等です。何度実行しても安全。
 

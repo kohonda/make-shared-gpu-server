@@ -54,6 +54,7 @@ config/
   ssh/                  # sshd hardening (no password, no root) -> /etc/ssh/sshd_config.d/00-lab.conf
   apt/                  # unattended-upgrades NVIDIA blacklist -> /etc/apt/apt.conf.d/
   ufw/                  # Firewall rules (SSH+monitoring on tailscale0 only)
+  admin-home/           # Admin update scripts (update-and-reboot.sh, update-and-poweroff.sh) -> admin home
 
 docs/
   admin/                # Setup guide, user management procedures
