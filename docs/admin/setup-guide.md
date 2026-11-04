@@ -273,6 +273,8 @@ sudo ./scripts/update-admin-notes.sh
 
 Grafana と Prometheus は Tailscale の IP にだけ bind するので、起動時に Tailscale の IP がまだ無いことがあります。そのときはこのユニットが失敗し、IP が取れるまで 15 秒ごとに `setup-monitoring.sh` を再試行します。
 
+Docker の起動時に IP が無いと、コンテナが動いていてもポートが公開されないことがあります。そこで `setup-monitoring.sh` は `docker compose up -d` のあとに、`prometheus` の 9090 番と `grafana` の 3000 番が Tailscale の IP に公開されているかを確認します。公開されていなければ、警告を出してこの 2 つのコンテナを作り直し、もう一度確認します。それでも公開されていなければスクリプトは失敗し、このユニットが 15 秒後に再試行します。ポートが公開されていれば、コンテナは作り直しません。
+
 状態を確認するには、次を実行します。実行した直後は開始していないので `inactive (dead)` と表示され、`enabled` になっていれば問題ありません。再起動後は `active (exited)` になります。
 
 ```bash
@@ -364,7 +366,7 @@ Grafana のパスワードだけは値を書きます。同じサーバーの `c
 | Docker から GPU が見えない          | `sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker`    |
 | ufw で締め出された                  | 物理コンソールから `sudo ufw disable` → ルール修正                                      |
 | Grafana の admin パスワードを忘れた | コンテナ停止 →`grafana-data` ボリューム削除 → 再起動（メトリクスは Prometheus に残る） |
-| 再起動後に Grafana / Prometheus が立ち上がらない | `journalctl -b -u lab-monitoring` で再試行の理由を確認。`Tailscale is not running` なら §3 の手順で Tailscale を起動すれば次の再試行で立ち上がる。`.env` が無い場合は §5 の手順で作る |
+| 再起動後に Grafana / Prometheus が立ち上がらない | `journalctl -b -u lab-monitoring` で再試行の理由を確認。`Tailscale is not running` なら §3 の手順で Tailscale を起動すれば次の再試行で立ち上がる。`.env` が無い場合は §5 の手順で作る。`sudo docker ps` の `Ports` が空なら、Docker の起動時に Tailscale の IP が無かった状態で、§5 のとおり `setup-monitoring.sh` が作り直す。直らないときは `journalctl -b -u lab-monitoring` で作り直しの結果を確認する |
 
 ## 9. 既存サーバーを命名規則に合わせる
 
