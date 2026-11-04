@@ -41,7 +41,7 @@ shellcheck scripts/*.sh scripts/lib/*.sh
 ```
 scripts/
   setup.sh              # Main setup: packages, Docker, nvidia-container-toolkit, uv, pixi, ufw, skel
-  add-user.sh           # Create user in labmembers+docker groups, lock password, home 750
+  add-user.sh           # Create user in labmembers group (no Docker by default), lock password, home 750
   setup-tailscale.sh    # Install Tailscale, print interactive auth instructions
   setup-monitoring.sh   # docker compose up for monitoring stack
   lib/common.sh         # Shared helpers: logging (INFO/WARN/ERROR), root check, pkg detection, Ubuntu version
