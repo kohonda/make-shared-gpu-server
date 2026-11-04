@@ -20,7 +20,7 @@ SHARED_GROUP="${SHARED_GROUP:-labmembers}"
 SUDO_GROUP="sudo"
 NOTES_DIR_NAME="server-admin-notes"
 TMP_PREFIX=".update-tmp"
-MON_ENV_FILE="$REPO_ROOT/config/monitoring/.env"
+MONITORING_ENV_FILE="$REPO_ROOT/config/monitoring/.env"
 GRAFANA_PORT=3000
 PROMETHEUS_PORT=9090
 TAILSCALE_ADMIN_URL="https://login.tailscale.com/admin/machines"
@@ -68,8 +68,8 @@ tailscale_fqdn() {
 # just to read a password. Compose lets the last line win and strips outer quotes.
 read_monitoring_env_value() {
     local key="$1"
-    [[ -r "$MON_ENV_FILE" ]] || return 0
-    sed -n "s/^${key}=//p" "$MON_ENV_FILE" | tail -n1 \
+    [[ -r "$MONITORING_ENV_FILE" ]] || return 0
+    sed -n "s/^${key}=//p" "$MONITORING_ENV_FILE" | tail -n1 \
         | sed -E "s/\r$//; s/^\"(.*)\"$/\1/; s/^'(.*)'$/\1/"
 }
 
@@ -85,7 +85,7 @@ ssh_command() {
 # The URL needs both the Tailscale IP the stack binds to and the .env that configures it.
 monitoring_url() {
     local tailscale_ip="$1" port="$2"
-    if [[ -z "$tailscale_ip" || ! -f "$MON_ENV_FILE" ]]; then
+    if [[ -z "$tailscale_ip" || ! -f "$MONITORING_ENV_FILE" ]]; then
         printf '%s\n' "$UNSET_LABEL"
         return 0
     fi
@@ -240,10 +240,10 @@ prepare_notes_dir "$NOTES_DIR" "$ADMIN_USER" "$ADMIN_GROUP"
 refuse_unsafe_note_path "$ADMIN_NOTE"
 refuse_unsafe_note_path "$USERS_NOTE"
 
-TS_IP=$(tailscale_ipv4)
-TS_FQDN=$(tailscale_fqdn)
-ADMIN_AUTO_SECTION=$(render_admin_auto_section "$TS_FQDN" "$TS_IP" "$ADMIN_USER")
-USERS_AUTO_SECTION=$(render_users_auto_section "${TS_FQDN:-$TS_IP}")
+TAILSCALE_IP=$(tailscale_ipv4)
+TAILSCALE_FQDN=$(tailscale_fqdn)
+ADMIN_AUTO_SECTION=$(render_admin_auto_section "$TAILSCALE_FQDN" "$TAILSCALE_IP" "$ADMIN_USER")
+USERS_AUTO_SECTION=$(render_users_auto_section "${TAILSCALE_FQDN:-$TAILSCALE_IP}")
 
 write_note "$ADMIN_NOTE" "$ADMIN_AUTO_SECTION" "$ADMIN_MANUAL_TEMPLATE" "$ADMIN_USER:$ADMIN_GROUP"
 write_note "$USERS_NOTE" "$USERS_AUTO_SECTION" "$USERS_MANUAL_TEMPLATE" "$ADMIN_USER:$ADMIN_GROUP"
