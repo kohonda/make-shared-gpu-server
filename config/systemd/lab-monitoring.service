@@ -1,0 +1,24 @@
+# Template: scripts/setup-monitoring.sh replaces @REPO_ROOT@ and installs this as
+# /etc/systemd/system/lab-monitoring.service.
+#
+# Grafana and Prometheus bind only to the Tailscale IP, which may not exist yet
+# when Docker starts at boot. Ordering alone cannot wait for it, because
+# tailscaled finishing its startup does not mean it has an address, so the script
+# fails until it does and systemd retries it.
+
+[Unit]
+Description=Lab monitoring stack (Prometheus + Grafana)
+Wants=docker.service tailscaled.service network-online.target
+After=docker.service tailscaled.service network-online.target
+Requires=docker.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=@REPO_ROOT@/scripts/setup-monitoring.sh
+Restart=on-failure
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target
