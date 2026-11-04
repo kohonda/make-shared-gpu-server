@@ -207,6 +207,28 @@ sudo ./scripts/setup-monitoring.sh
 
 Grafana の初期ログイン情報は `.env` の `GF_SECURITY_ADMIN_USER` / `GF_SECURITY_ADMIN_PASSWORD` で設定した値です。
 
+### 再起動後の自動起動
+
+`setup-monitoring.sh` はスタックの起動に成功すると、`lab-monitoring.service` を `/etc/systemd/system/` に置いて enable します。一度実行すれば、以後の再起動では Grafana と Prometheus が自動で立ち上がります。
+
+Grafana と Prometheus は Tailscale の IP にだけ bind するので、起動時に Tailscale の IP がまだ無いことがあります。そのときはこのユニットが失敗し、IP が取れるまで 15 秒ごとに `setup-monitoring.sh` を再試行します。
+
+状態を確認するには、次を実行します。実行した直後は開始していないので `inactive (dead)` と表示され、`enabled` になっていれば問題ありません。再起動後は `active (exited)` になります。
+
+```bash
+systemctl status lab-monitoring
+```
+
+自動起動をやめてスタックも止めるには、次を実行します。`setup-monitoring.sh` を再度実行すると、自動起動も有効に戻ります。
+
+```bash
+sudo systemctl disable --now lab-monitoring
+cd config/monitoring
+sudo docker compose down
+```
+
+ユニットにはリポジトリの絶対パスが書き込まれます。リポジトリを移したら（別の管理者アカウントのホームへ移す場合も）、移した先で `sudo ./scripts/setup-monitoring.sh` を再実行してください。パスに空白や `%` などの記号が含まれると、警告を出してユニットを置きません。
+
 ## 6. 管理者の個人環境（任意）
 
 管理者はサーバーにモニターをつないでデスクトップに直接ログインすることがあるため、管理者だけは日本語入力（変換キーで Mozc オン、無変換キーでオフ）と Claude Code / Codex を使えるようにしておくと便利です。これらは管理者の個人マシン用セットアップ [kohonda/make-ubuntu-setup](https://github.com/kohonda/make-ubuntu-setup) にすでにあるので（`60-fcitx5-mozc.sh`、`90-claude-code.sh`、`95-codex.sh`）、本リポジトリにはスクリプトを足さず、それを使います。
@@ -282,6 +304,7 @@ Grafana のパスワードだけは値を書きます。同じサーバーの `c
 | Docker から GPU が見えない          | `sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker`    |
 | ufw で締め出された                  | 物理コンソールから `sudo ufw disable` → ルール修正                                      |
 | Grafana の admin パスワードを忘れた | コンテナ停止 →`grafana-data` ボリューム削除 → 再起動（メトリクスは Prometheus に残る） |
+| 再起動後に Grafana / Prometheus が立ち上がらない | `journalctl -b -u lab-monitoring` で再試行の理由を確認。`Tailscale is not running` なら §3 の手順で Tailscale を起動すれば次の再試行で立ち上がる。`.env` が無い場合は §5 の手順で作る |
 
 ## 9. 既存サーバーを命名規則に合わせる
 
