@@ -34,10 +34,9 @@ if id "$USERNAME" >/dev/null 2>&1; then
 fi
 
 ensure_group "$SHARED_GROUP"
-ensure_group docker
 
 log_info "Creating user: $USERNAME"
-useradd -m -s /bin/bash -G "$SHARED_GROUP",docker "$USERNAME"
+useradd -m -s /bin/bash -G "$SHARED_GROUP" "$USERNAME"
 
 # Lock the password (no password login possible).
 passwd -l "$USERNAME" >/dev/null
@@ -76,6 +75,8 @@ NEXT STEPS:
 
   To open a shell as this user from the admin account:
       sudo -i -u $USERNAME
+
+  Docker is off by default. To allow it (effectively root): sudo gpasswd -a $USERNAME docker
 ===============================================
 EOF
 
