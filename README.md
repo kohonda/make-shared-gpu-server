@@ -39,6 +39,9 @@
 ## クイックスタート（管理者）
 
 ```bash
+# 0. 最初に管理者アカウント（admin-<名+姓>）とホスト名を命名規則どおりにする（setup-guide の冒頭）
+sudo hostnamectl set-hostname gpu01-b6000   # /etc/hosts の修正も必要
+
 # 1. 事前に NVIDIA ドライバを手動インストール
 # https://ubuntu.com/server/docs/how-to/graphics/install-nvidia-drivers/
 sudo ubuntu-drivers list
@@ -52,7 +55,6 @@ cd ~/make-shared-gpu-server
 
 # 3. Tailscale（setup.sh より先に。ufw は SSH を tailscale0 からしか通さない）
 #    事前にポリシーファイル（Access controls）の tagOwners に tag:server を定義しておく（setup-guide §3）
-sudo hostnamectl set-hostname gpu01-b6000   # 命名規則どおりに。/etc/hosts の修正も必要（setup-guide §3）
 sudo ./scripts/setup-tailscale.sh
 sudo tailscale up --ssh --hostname="$(hostname)" --advertise-tags=tag:server
 # ヘッドレスなら: TAILSCALE_AUTHKEY=tskey-auth-XXXX sudo -E ./scripts/setup-tailscale.sh
