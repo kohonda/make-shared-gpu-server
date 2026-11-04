@@ -8,6 +8,30 @@
 - root もしくは sudo 権限のあるアカウント
 - インターネット接続あり
 
+## 命名規則とアカウント構成
+
+複数台のサーバーで同じ運用にするための決まりです。既存のサーバーをこの規則に合わせる手順は [§9](#9-既存サーバーを命名規則に合わせる) にあります。
+
+### ホスト名
+
+- 形式は `gpu<番号>-<GPU種類>` です（例: `gpu01-b6000`, `gpu02-b200`）。小文字・数字・ハイフンだけを使います。
+- 番号は GPU の種類をまたいだゼロ埋めの通し番号で、再利用しません。
+- GPU を換装したら、種類の部分を [§9.1](#91-ホスト名を変更する) の手順で変えます（番号は変えません）。
+- 種類が混在するサーバーは主な GPU で名付け、細かいスペックは別の一覧表で管理します。
+- 本ドキュメント群の `gpu01` は例なので、実際のホスト名に読み替えてください。
+
+### ユーザー名
+
+- 名+姓の小文字にします（例: `taroyamada`）。全サーバーで共通の名前を使い、再利用しません。
+- `add-user.sh` の検証により、大文字を含む名前（`KoheiHonda`）と数字で始まる名前は使えません。
+- `add-user.sh` は UID を指定しないので、全サーバーで同じ順番でユーザーを追加します（将来の NFS やディスク移設に備えるため）。
+
+### 管理者のアカウント
+
+- **`admin`**: Ubuntu インストール時に作る最初のユーザーです。管理作業とデスクトップログインに使い、実験はしません。
+- **個人名アカウント**: 実験は個人名のアカウントで行います。管理者本人の分も `add-user.sh` で作る一般ユーザーです。このため docker グループに入り、実質 root 相当の権限は残ります。外すなら `sudo gpasswd -d <user> docker` ですが、その場合は Docker を使えません。
+- **管理者が増える場合**: `admin` を共用せず、`taroyamada-admin` のように1人1つ作ります（[add-user.md の「sudo を使わせたい場合」](add-user.md#sudo-を使わせたい場合)を参照）。
+
 ## 1. NVIDIAドライバの手動インストール
 
 `setup.sh` は **ドライバを自動インストールしません**（過去にトラブルが多いため）。事前に手動で入れてください。
@@ -47,6 +71,17 @@ cd make-shared-gpu-server
 
 `setup.sh` の ufw 設定は SSH を `tailscale0` からしか許可しません。そのため **Tailscale を先に上げます**。`setup-tailscale.sh` は `setup.sh` に依存しません。`tailscale0` が無い状態で `setup.sh` を実行した場合、ufw は変更されず（有効化もリセットもされず）WARN が出ます。その場合は Tailscale を上げてから `setup.sh` を再実行してください。
 
+### 事前準備: ホスト名を設定する
+
+Tailscale を上げる前に、[命名規則](#命名規則とアカウント構成)どおりのホスト名を設定します。`setup-tailscale.sh` は `$(hostname)` をそのまま Tailscale に登録するので、後から変えると Share の利用者の接続先（FQDN）が変わります。
+
+```bash
+sudo hostnamectl set-hostname gpu01-b6000
+sudoedit /etc/hosts                     # 127.0.1.1 の行を gpu01-b6000 に直す
+```
+
+> ⚠️ **再インストールするときは、古いマシンを管理画面（<https://login.tailscale.com/admin/machines>）から先に削除してください。** 残っていると、`gpu01-b6000-1` のように別名で登録されることがあります。
+
 ### 事前準備: ポリシーファイルの tagOwners
 
 サーバーは `tag:server` タグ付きで登録します。タグを付けるには、tailnet のポリシーファイル（管理画面の Access controls: <https://login.tailscale.com/admin/acls/file>）の `tagOwners` にそのタグが定義されている必要があります。無いと `tailscale up --advertise-tags=tag:server` が失敗します。
@@ -83,6 +118,24 @@ TAILSCALE_AUTHKEY=tskey-auth-XXXX sudo -E ./scripts/setup-tailscale.sh
 ### tailnet の管理
 
 セットアップ後、Tailscale 管理画面 <https://login.tailscale.com/admin/machines> でマシンを確認してください。利用者は、このマシンを **Machines → 対象サーバー → Share** で利用者ごとに共有して受け入れます（tailnet には招待しません）。手順と、ポリシーファイルの `grants`（通信できる範囲）と `ssh`（ログインできるユーザー）の役割は [add-user.md](add-user.md) を参照してください。tailnet への招待（**Users → Invite users**）は、管理者を増やすときなどのオプションです。
+
+### `admin` 用の `ssh` ルール
+
+`admin` は sudo を持つので、ポリシーファイルの `ssh` セクションに再認証を求める `check` モードのルールを追加します。Tailscale のアイデンティティで再認証するまで接続できません（既定では 12 時間ごと。`checkPeriod` で変えられます）。
+
+```jsonc
+"ssh": [
+    // ... 既存のルール ...
+    {
+        "action": "check",                 // 接続時に再認証を求める
+        "src":    ["you@example.com"],     // 管理者の Tailscale アカウントのメールアドレス
+        "dst":    ["tag:server"],
+        "users":  ["admin"]
+    }
+]
+```
+
+管理者本人の個人名アカウントのルールは、一般の利用者と同じです（[add-user.md](add-user.md)）。
 
 ### SSH 運用ポリシー
 
@@ -158,7 +211,9 @@ Grafana の初期ログイン情報は `.env` の `GF_SECURITY_ADMIN_USER` / `GF
 
 管理者はサーバーにモニターをつないでデスクトップに直接ログインすることがあるため、管理者だけは日本語入力（変換キーで Mozc オン、無変換キーでオフ）と Claude Code / Codex を使えるようにしておくと便利です。これらは管理者の個人マシン用セットアップ [kohonda/make-ubuntu-setup](https://github.com/kohonda/make-ubuntu-setup) にすでにあるので（`60-fcitx5-mozc.sh`、`90-claude-code.sh`、`95-codex.sh`）、本リポジトリにはスクリプトを足さず、それを使います。
 
-`setup.sh` の後に、**root ではなく管理者自身として**実行します（`install.sh` は root での実行を拒否し、必要なところだけ `sudo` します）。
+`setup.sh` の後に、**root でも個人名アカウントでもなく `admin` として**実行します。`install.sh` は root での実行を拒否し、必要なところだけ `sudo` します。`60-fcitx5-mozc.sh` は sudo が必要で、`add-user.sh` で作るアカウントはパスワードがロックされていてデスクトップにログインできないため、`admin` で実行します。
+
+Claude Code / Codex を実験用の個人名アカウントでも使うときは、下の「影響範囲」にある sudo なしの公式インストーラで、そのアカウントに入れてください。
 
 ```bash
 git clone https://github.com/kohonda/make-ubuntu-setup ~/make-ubuntu-setup
@@ -174,7 +229,7 @@ skip の理由:
 
 影響範囲:
 
-- インストール先は管理者のホーム（`~/.local/bin`、`~/.config/fcitx5`、`~/.claude`、`~/.codex`）なので、他のユーザーには影響しません（ホームは mode 750）。他のユーザーが Claude Code / Codex を使いたい場合は、各自が sudo なしの公式インストーラで入れて、自分のアカウントでログインしてください。
+- インストール先は `admin` のホーム（`~/.local/bin`、`~/.config/fcitx5`、`~/.claude`、`~/.codex`）なので、他のユーザーには影響しません（ホームは mode 750）。他のユーザーが Claude Code / Codex を使いたい場合は、各自が sudo なしの公式インストーラで入れて、自分のアカウントでログインしてください。
 - `/etc/environment.d/99-fcitx5.conf` だけはシステム全体の設定ですが、デスクトップセッションの IME 用の環境変数なので、SSH で使う人には影響しません。
 - 日本語入力が効くのは、サーバーのデスクトップに直接ログインしたときだけです。SSH 経由のときは手元の PC の IME が使われます。
 
@@ -182,8 +237,10 @@ skip の理由:
 
 ## 7. 初回ユーザー追加
 
+最初に追加するのは、管理者本人の個人名アカウントです（[命名規則](#命名規則とアカウント構成)を参照）。
+
 ```bash
-sudo ./scripts/add-user.sh alice
+sudo ./scripts/add-user.sh taroyamada
 ```
 
 詳細は [add-user.md](add-user.md)。
@@ -198,3 +255,49 @@ sudo ./scripts/add-user.sh alice
 | Docker から GPU が見えない          | `sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker`    |
 | ufw で締め出された                  | 物理コンソールから `sudo ufw disable` → ルール修正                                      |
 | Grafana の admin パスワードを忘れた | コンテナ停止 →`grafana-data` ボリューム削除 → 再起動（メトリクスは Prometheus に残る） |
+
+## 9. 既存サーバーを命名規則に合わせる
+
+すでに動いているサーバーを[命名規則](#命名規則とアカウント構成)に合わせる手順です。**9.1 → 9.2 → 9.3 の順に**進めます。
+
+### 9.1 ホスト名を変更する
+
+```bash
+sudo hostnamectl set-hostname gpu01-b6000
+sudoedit /etc/hosts                     # 127.0.1.1 の行を gpu01-b6000 に直す
+sudo tailscale set --hostname=gpu01-b6000
+hostnamectl --static; tailscale status  # 確認
+```
+
+- FQDN が変わるので、Share の利用者に新しい接続先を伝えます（`~/.ssh/config` の `HostName` も変更が必要です）。
+- 管理画面でマシン名を手動で変えている場合は、自動では追従しないので管理画面で直します。
+- クラウドイメージで cloud-init が動いている場合は、再起動で戻らないように `preserve_hostname: true` を設定します。
+- 監視スタックの設定と MOTD はホスト名を固定で持っていないので、変更は不要です。
+
+### 9.2 `admin` を追加する
+
+```bash
+getent passwd admin; getent group admin   # 既にないことを確認
+sudo adduser --gecos "" admin             # sudo とデスクトップログイン用のパスワードを設定
+sudo usermod -aG sudo admin
+```
+
+- [§3 の `admin` 用 `ssh` ルール](#admin-用の-ssh-ルール)をポリシーファイルに追加します。
+- **今のセッションを閉じずに**、別の端末から `ssh admin@<FQDN>` で入り、`sudo -v` が通ることを確認します。
+
+### 9.3 既存ユーザーを削除する（必要な場合）
+
+**9.2 の確認が終わるまで削除しないでください**（締め出し防止）。削除は元に戻せないので、先に残すものを確認します。
+
+```bash
+# admin で実行する
+who; ps -u <old>                                  # ログイン中のセッションとプロセス
+sudo crontab -u <old> -l                          # cron
+sudo find / -xdev -user <old> -not -path '/home/<old>/*' -ls   # ホーム外の所有ファイル
+sudo du -sh /home/<old>                           # 残すデータの量
+```
+
+- 実験データや、§2 で管理者のホームに clone した本リポジトリを、新しいアカウントに移します。
+- ホーム外に残すファイルは、先に新しい所有者へ `chown` します。残したまま削除すると UID だけの所有者になり、後で同じ UID を割り当てられたユーザーが所有者になるおそれがあります。
+- `sudo pkill -u <old>` と `sudo userdel -r <old>` を実行します（[add-user.md の「削除」](add-user.md#削除)を参照）。迷ったらホームを残す `userdel`（`-r` なし）か、ロックのみの `sudo usermod -L <old>` にとどめます。
+- ポリシーファイルの `<old>` の `ssh` ルールを消し、`ssh <old>@<FQDN>` で入れないことを確認します。
