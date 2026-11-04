@@ -23,9 +23,9 @@ Tailscale 管理画面の **Access controls**（<https://login.tailscale.com/adm
 
 ## 追加
 
-> **ユーザー名は Tailscale アカウントのメール prefix に合わせておくと管理が楽です**（例: `alice@example.com` → Linux ユーザー `alice`）。
-> ただし、名前を合わせただけではログインできません。Tailscale のデフォルトの SSH ルールは `autogroup:self`（自分が所有するデバイスへの接続）向けで、`tag:server` 付きのサーバーには当たりません。ユーザーごとに、下の「ポリシーファイルの `ssh` セクションにルールを追加」の明示ルールが必要です。
-> `ssh` ルールの `users` に書くのは、**`add-user.sh` に渡した名前そのもの**です。メール prefix と違う名前で作った場合は、作った名前の方を書きます。
+> **ユーザー名は名+姓の小文字にします**（例: `taroyamada`。全サーバー共通。[命名規則](setup-guide.md#命名規則とアカウント構成)を参照）。メールアドレスとユーザー名の対応は `ssh` ルールで持つので、両者を揃える必要はありません。
+> アカウントを作っただけではログインできません。Tailscale のデフォルトの SSH ルールは `autogroup:self`（自分が所有するデバイスへの接続）向けで、`tag:server` 付きのサーバーには当たりません。ユーザーごとに、下の「ポリシーファイルの `ssh` セクションにルールを追加」の明示ルールが必要です。
+> `ssh` ルールの `users` に書くのは、**`add-user.sh` に渡した名前そのもの**です。
 
 ```bash
 sudo ./scripts/add-user.sh <username>
@@ -91,7 +91,7 @@ sudo usermod -aG sudo <username>
 
 - `src`: ユーザーの Tailscale アカウント（メールアドレス）
 - `dst`: 接続先サーバーのタグ。サーバーは `tag:server` で登録されています
-- `users`: サーバー上の Linux ユーザー名。**`add-user.sh` に渡した名前そのもの**を書きます（メール prefix に合わせていればそれと同じ）
+- `users`: サーバー上の Linux ユーザー名。**`add-user.sh` に渡した名前そのもの**を書きます
 
 ### 3. 接続先を伝える
 
