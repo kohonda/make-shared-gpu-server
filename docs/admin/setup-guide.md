@@ -50,7 +50,7 @@ id -un; hostnamectl --static
 ### 管理者のアカウント
 
 - **管理者アカウント（`admin-<名+姓>`）**: 例: `admin-koheihonda`。Ubuntu インストール時に作る最初のユーザーです。管理作業とデスクトップログインに使い、実験はしません。
-- **個人名アカウント**: 実験は個人名のアカウントで行います。管理者本人の分も `add-user.sh` で作る一般ユーザーです。このため docker グループに入り、実質 root 相当の権限は残ります。外すなら `sudo gpasswd -d <user> docker` ですが、その場合は Docker を使えません。
+- **個人名アカウント**: 実験は個人名のアカウントで行います。管理者本人の分も `add-user.sh` で作る一般ユーザーです。このため既定では Docker を使えません。必要なら `sudo gpasswd -a <user> docker` で許可します。許可すると、そのアカウントは実質 root 相当の権限を持ちます。
 - **管理者が増える場合**: 管理者アカウントは共用せず、同じ規則で1人1つ作ります（[§9.2](#92-管理者アカウントを追加する)を参照）。
 
 ## 1. NVIDIAドライバの手動インストール
@@ -220,6 +220,21 @@ SHARED_GROUP=mylab sudo -E ./scripts/add-user.sh alice
 
 任意。GPU/ホストメトリクスを Grafana で見たい場合に起動します。
 
+| 構成要素 | 役割 |
+| --- | --- |
+| `node-exporter` | CPU、メモリ、ディスクの値を出す |
+| `dcgm-exporter` | GPU の値を出す |
+| Prometheus（`:9090`） | exporter の値を 15 秒ごとに集めて 30 日保存する |
+| Grafana（`:3000`） | 集めた値をグラフで見る画面 |
+
+データは exporter → Prometheus → Grafana の順に流れます。
+
+普段は Grafana の `GPU Overview`（GPU 使用率、GPU メモリ、GPU 温度、CPU、メモリ、ディスク）を見ます。Prometheus の画面は、値の取得状況（Status → Targets）の確認や、PromQL での調査に使います。
+
+どちらも Tailscale の IP だけに公開します。Prometheus にはログインがないので、サーバーに届く人は誰でも見られます。
+
+起動するには、次を実行します。
+
 ```bash
 cd config/monitoring
 cp .env.example .env
@@ -236,6 +251,21 @@ sudo ./scripts/setup-monitoring.sh
 - Prometheus: `http://<tailscale-ip>:9090`
 
 Grafana の初期ログイン情報は `.env` の `GF_SECURITY_ADMIN_USER` / `GF_SECURITY_ADMIN_PASSWORD` で設定した値です。
+
+### Grafana のパスワードを変更する
+
+`.env` の `GF_SECURITY_ADMIN_PASSWORD` が効くのは、Grafana の初回起動時だけです。あとから `.env` を変えても、パスワードは変わりません。次の順に変更します。
+
+1. Grafana の画面の Profile → Change password で変えます。パスワードに `$` は使わないでください（Docker Compose が変数として解釈するため）。
+2. `.env` を同じ値にして権限を 600 にし、管理者メモを更新します。
+
+```bash
+cd config/monitoring
+# GF_SECURITY_ADMIN_PASSWORD を新しいパスワードに書き換える
+chmod 600 .env
+cd ../..
+sudo ./scripts/update-admin-notes.sh
+```
 
 ### 再起動後の自動起動
 
@@ -297,7 +327,7 @@ sudo ./scripts/add-user.sh koheihonda
 
 詳細は [add-user.md](add-user.md)。
 
-> ⚠️ `add-user.sh` は利用者を `docker` グループに入れます。**docker グループは実質 root 相当**です（`docker run -v /:/host` でホスト全体を読み書きできる）。信頼できるメンバーだけを追加してください。
+> ⚠️ `add-user.sh` は利用者を `docker` グループに入れないので、既定では Docker を使えません。許可するときは `sudo gpasswd -a <user> docker` を実行します。**docker グループは実質 root 相当**です（`docker run -v /:/host` でホスト全体を読み書きできる）。信頼できるメンバーだけを許可してください。
 
 ### 管理者メモ
 
@@ -321,7 +351,7 @@ sudo ./scripts/update-admin-notes.sh
 
 鍵の実際の値はパスワードマネージャーに置き、メモには用途、保管場所、再発行手順だけを書いてください。メモには次の性質があるためです。
 
-- **docker グループの利用者には読めます。** ファイルが 600 でも、docker グループは実質 root 相当なので読めます。
+- **Docker を許可した利用者には読めます。** ファイルが 600 でも、docker グループは実質 root 相当なので読めます。
 - **メモはサーバーと一緒に失われます。** サーバーが壊れたときに必要な鍵の値を、サーバーの上にだけ置かないでください。
 
 Grafana のパスワードだけは値を書きます。同じサーバーの `config/monitoring/.env` にすでにあり、読める人が増えないためです。
