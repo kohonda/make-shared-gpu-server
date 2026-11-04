@@ -52,6 +52,7 @@ cd ~/make-shared-gpu-server
 
 # 3. Tailscale（setup.sh より先に。ufw は SSH を tailscale0 からしか通さない）
 #    事前にポリシーファイル（Access controls）の tagOwners に tag:server を定義しておく（setup-guide §3）
+sudo hostnamectl set-hostname gpu01-b6000   # 命名規則どおりに。/etc/hosts の修正も必要（setup-guide §3）
 sudo ./scripts/setup-tailscale.sh
 sudo tailscale up --ssh --hostname="$(hostname)" --advertise-tags=tag:server
 # ヘッドレスなら: TAILSCALE_AUTHKEY=tskey-auth-XXXX sudo -E ./scripts/setup-tailscale.sh
@@ -66,8 +67,8 @@ sudo ./scripts/setup-monitoring.sh
 
 # 管理者の個人環境（任意。日本語入力・Claude Code・Codex）: setup-guide §6 を参照
 
-# 6. ユーザー追加（その後、管理画面の Machines → このサーバー → Share で利用者に共有。docs/admin/add-user.md）
-sudo ./scripts/add-user.sh alice
+# 6. ユーザー追加（最初は管理者本人の個人名アカウント。その後、管理画面の Machines → このサーバー → Share で利用者に共有。docs/admin/add-user.md）
+sudo ./scripts/add-user.sh taroyamada
 ```
 
 詳細は [docs/admin/setup-guide.md](docs/admin/setup-guide.md)。管理者がサーバーのデスクトップで日本語入力・Claude Code・Codex を使いたい場合は、任意で [管理者の個人環境](docs/admin/setup-guide.md#6-管理者の個人環境任意) の手順を実行します（setup.sh の後、ユーザー追加の前）。
