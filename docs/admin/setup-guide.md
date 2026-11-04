@@ -390,6 +390,8 @@ UID、パスワード、グループ（`sudo` など）、ホームの中身は�
 
 他に管理者アカウントがなければ、[9.2](#92-管理者アカウントを追加する) の手順で一時的なアカウント（例: `admin-tmp`）を作り、`ssh` ルールも追加します。ログインして `sudo -v` が通ることを確認してください。名前を変える間に締め出されないよう、この確認の前に先へ進まないでください。
 
+手順 2 と 3 は、名前を変えるアカウントではなく、**この作業用のアカウントにログインして**実行します。
+
 **2. 名前を変更する**
 
 変更するアカウントは、SSH とデスクトップの両方からログアウトしておきます。`usermod` はプロセスが動いていても止めてくれないことがあるので、先に止めます。
@@ -409,16 +411,26 @@ sudo groupmod -n "$NEW" "$OLD"
 sudo usermod -d "/home/$NEW" -m "$NEW"
 ```
 
+途中で止まったときは、最初から再実行しないでください。変更が済んだ後に同じコマンドを実行すると、`user 'xxx' does not exist` や `group 'xxx' does not exist` というエラーになります（`xxx` は古い名前）。次のコマンドで状態を確認し、残っているものだけを実行します。
+
+```bash
+getent passwd "$NEW"   # 行が出れば usermod -l は済んでいる。6 番目の欄が /home/$NEW なら usermod -d も済んでいる
+id "$NEW"              # gid= の () 内が $NEW なら groupmod は済んでいる
+```
+
 **3. 自動では変わらない場所を直す**
 
-`usermod` は次の場所を変更しません。`crontab` は移さないと動かなくなります。
+`usermod` は次の場所を変更しません。`crontab` は移さないと動かなくなります。表示名（デスクトップのログイン画面などに出る名前）も古いままなので、`chfn` で変えます。
 
 ```bash
 sudo sed -i "s/^$OLD:/$NEW:/" /etc/subuid /etc/subgid
 sudo test -e "/var/spool/cron/crontabs/$OLD" \
   && sudo mv "/var/spool/cron/crontabs/$OLD" "/var/spool/cron/crontabs/$NEW"
-sudo grep -rl "$OLD" /etc/sudoers.d /etc/gdm3/custom.conf   # 出てきたら直す（sudoers は sudo visudo -f <file> で編集）
+sudo chfn -f "Kohei Honda" "$NEW"
+sudo grep -rnw "$OLD" /etc/sudoers.d /etc/gdm3/custom.conf
 ```
+
+`grep` の結果のうち、直すのはアカウント名として使っている行だけです（例: `user ALL=...`、`AutomaticLogin = user`）。コメント行は直さなくて構いません。sudoers は `sudo visudo -f <file>` で編集します。
 
 **4. ログインできるようにする**
 
