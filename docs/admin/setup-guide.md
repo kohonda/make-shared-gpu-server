@@ -231,7 +231,7 @@ SHARED_GROUP=mylab sudo -E ./scripts/add-user.sh alice
 
 普段は Grafana の `GPU Overview`（GPU 使用率、GPU メモリ、GPU 温度、CPU、メモリ、ディスク）を見ます。Prometheus の画面は、値の取得状況（Status → Targets）の確認や、PromQL での調査に使います。
 
-どちらも Tailscale の IP だけに公開します。Prometheus にはログインがないので、サーバーに届く人は誰でも見られます。
+どちらも Tailscale の IP だけに公開します。Prometheus にも Grafana の閲覧にもログインがないので、サーバーに届く人は誰でも見られます。
 
 起動するには、次を実行します。
 
@@ -251,6 +251,22 @@ sudo ./scripts/setup-monitoring.sh
 - Prometheus: `http://<tailscale-ip>:9090`
 
 Grafana の初期ログイン情報は `.env` の `GF_SECURITY_ADMIN_USER` / `GF_SECURITY_ADMIN_PASSWORD` で設定した値です。
+
+### ログインなしの閲覧
+
+Grafana の URL を開くと、ログインなしで `GPU Overview` が表示されます。利用者が管理者に聞かずに GPU の空きを確認するためです。
+
+- 見えるのはダッシュボードの値です。ダッシュボードの編集や保存はできません。
+- サーバーに届く人は誰でも見られます。Grafana 経由で Prometheus に問い合わせることもできるので、届く範囲と見える値は Prometheus の画面と同じです。
+- 編集するときは `admin` でログインします。`admin` のパスワードは利用者に渡さないでください。
+
+既存のサーバーでも、リポジトリを更新して次のコマンドを実行すれば反映されます。
+
+```bash
+sudo ./scripts/setup-monitoring.sh
+```
+
+ログインなしの閲覧をやめるには、`config/monitoring/docker-compose.yml` の `grafana` から `GF_AUTH_ANONYMOUS_ENABLED` と `GF_AUTH_ANONYMOUS_ORG_ROLE` を外し、同じコマンドを実行します。
 
 ### Grafana のパスワードを変更する
 

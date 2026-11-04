@@ -248,7 +248,9 @@ VS Code Remote SSH handles `.ipynb` natively. For full remote desktop, set up no
 ## 10. Grafana
 
 If the monitoring stack is running, browse `http://<host>.<tailnet>.ts.net:3000` (or `http://<Tailscale IP>:3000`) over Tailscale to see GPU utilization, temperature, memory and host load.
-Log in with the username and password provided by your server administrator.
+No login is needed. You can view the dashboards but not edit them.
+
+Use it to check which GPUs are free before you start a job.
 
 ## 11. FAQ
 
