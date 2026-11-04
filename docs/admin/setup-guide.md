@@ -28,9 +28,9 @@
 
 ### 管理者のアカウント
 
-- **`admin`**: Ubuntu インストール時に作る最初のユーザーです。管理作業とデスクトップログインに使い、実験はしません。
+- **管理者アカウント（`admin-<名+姓>`）**: 例: `admin-taroyamada`。Ubuntu インストール時に作る最初のユーザーです。管理作業とデスクトップログインに使い、実験はしません。
 - **個人名アカウント**: 実験は個人名のアカウントで行います。管理者本人の分も `add-user.sh` で作る一般ユーザーです。このため docker グループに入り、実質 root 相当の権限は残ります。外すなら `sudo gpasswd -d <user> docker` ですが、その場合は Docker を使えません。
-- **管理者が増える場合**: `admin` を共用せず、`taroyamada-admin` のように1人1つ作ります（[add-user.md の「sudo を使わせたい場合」](add-user.md#sudo-を使わせたい場合)を参照）。
+- **管理者が増える場合**: 管理者アカウントは共用せず、同じ規則で1人1つ作ります（[§9.2](#92-管理者アカウントを追加する)を参照）。
 
 ## 1. NVIDIAドライバの手動インストール
 
@@ -119,9 +119,9 @@ TAILSCALE_AUTHKEY=tskey-auth-XXXX sudo -E ./scripts/setup-tailscale.sh
 
 セットアップ後、Tailscale 管理画面 <https://login.tailscale.com/admin/machines> でマシンを確認してください。利用者は、このマシンを **Machines → 対象サーバー → Share** で利用者ごとに共有して受け入れます（tailnet には招待しません）。手順と、ポリシーファイルの `grants`（通信できる範囲）と `ssh`（ログインできるユーザー）の役割は [add-user.md](add-user.md) を参照してください。tailnet への招待（**Users → Invite users**）は、管理者を増やすときなどのオプションです。
 
-### `admin` 用の `ssh` ルール
+### 管理者アカウント用の `ssh` ルール
 
-`admin` は sudo を持つので、ポリシーファイルの `ssh` セクションに再認証を求める `check` モードのルールを追加します。Tailscale のアイデンティティで再認証するまで接続できません（既定では 12 時間ごと。`checkPeriod` で変えられます）。
+管理者アカウントは sudo を持つので、ポリシーファイルの `ssh` セクションに再認証を求める `check` モードのルールを追加します。Tailscale のアイデンティティで再認証するまで接続できません（既定では 12 時間ごと。`checkPeriod` で変えられます）。
 
 ```jsonc
 "ssh": [
@@ -130,7 +130,7 @@ TAILSCALE_AUTHKEY=tskey-auth-XXXX sudo -E ./scripts/setup-tailscale.sh
         "action": "check",                 // 接続時に再認証を求める
         "src":    ["you@example.com"],     // 管理者の Tailscale アカウントのメールアドレス
         "dst":    ["tag:server"],
-        "users":  ["admin"]
+        "users":  ["admin-taroyamada"]     // 管理者アカウントの Linux ユーザー名
     }
 ]
 ```
@@ -211,7 +211,7 @@ Grafana の初期ログイン情報は `.env` の `GF_SECURITY_ADMIN_USER` / `GF
 
 管理者はサーバーにモニターをつないでデスクトップに直接ログインすることがあるため、管理者だけは日本語入力（変換キーで Mozc オン、無変換キーでオフ）と Claude Code / Codex を使えるようにしておくと便利です。これらは管理者の個人マシン用セットアップ [kohonda/make-ubuntu-setup](https://github.com/kohonda/make-ubuntu-setup) にすでにあるので（`60-fcitx5-mozc.sh`、`90-claude-code.sh`、`95-codex.sh`）、本リポジトリにはスクリプトを足さず、それを使います。
 
-`setup.sh` の後に、**root でも個人名アカウントでもなく `admin` として**実行します。`install.sh` は root での実行を拒否し、必要なところだけ `sudo` します。`60-fcitx5-mozc.sh` は sudo が必要で、`add-user.sh` で作るアカウントはパスワードがロックされていてデスクトップにログインできないため、`admin` で実行します。
+`setup.sh` の後に、**root でも個人名アカウントでもなく管理者アカウント（`admin-<名+姓>`）として**実行します。`install.sh` は root での実行を拒否し、必要なところだけ `sudo` します。`60-fcitx5-mozc.sh` は sudo が必要で、`add-user.sh` で作るアカウントはパスワードがロックされていてデスクトップにログインできないため、管理者アカウントで実行します。
 
 Claude Code / Codex を実験用の個人名アカウントでも使うときは、下の「影響範囲」にある sudo なしの公式インストーラで、そのアカウントに入れてください。
 
@@ -229,7 +229,7 @@ skip の理由:
 
 影響範囲:
 
-- インストール先は `admin` のホーム（`~/.local/bin`、`~/.config/fcitx5`、`~/.claude`、`~/.codex`）なので、他のユーザーには影響しません（ホームは mode 750）。他のユーザーが Claude Code / Codex を使いたい場合は、各自が sudo なしの公式インストーラで入れて、自分のアカウントでログインしてください。
+- インストール先は管理者アカウントのホーム（`~/.local/bin`、`~/.config/fcitx5`、`~/.claude`、`~/.codex`）なので、他のユーザーには影響しません（ホームは mode 750）。他のユーザーが Claude Code / Codex を使いたい場合は、各自が sudo なしの公式インストーラで入れて、自分のアカウントでログインしてください。
 - `/etc/environment.d/99-fcitx5.conf` だけはシステム全体の設定ですが、デスクトップセッションの IME 用の環境変数なので、SSH で使う人には影響しません。
 - 日本語入力が効くのは、サーバーのデスクトップに直接ログインしたときだけです。SSH 経由のときは手元の PC の IME が使われます。
 
@@ -274,23 +274,23 @@ hostnamectl --static; tailscale status  # 確認
 - クラウドイメージで cloud-init が動いている場合は、再起動で戻らないように `preserve_hostname: true` を設定します。
 - 監視スタックの設定と MOTD はホスト名を固定で持っていないので、変更は不要です。
 
-### 9.2 `admin` を追加する
+### 9.2 管理者アカウントを追加する
 
 ```bash
-getent passwd admin; getent group admin   # 既にないことを確認
-sudo adduser --gecos "" admin             # sudo とデスクトップログイン用のパスワードを設定
-sudo usermod -aG sudo admin
+getent passwd admin-taroyamada; getent group admin-taroyamada   # 既にないことを確認
+sudo adduser --gecos "" admin-taroyamada                        # sudo とデスクトップログイン用のパスワードを設定
+sudo usermod -aG sudo admin-taroyamada
 ```
 
-- [§3 の `admin` 用 `ssh` ルール](#admin-用の-ssh-ルール)をポリシーファイルに追加します。
-- **今のセッションを閉じずに**、別の端末から `ssh admin@<FQDN>` で入り、`sudo -v` が通ることを確認します。
+- [§3 の管理者アカウント用 `ssh` ルール](#管理者アカウント用の-ssh-ルール)をポリシーファイルに追加します。
+- **今のセッションを閉じずに**、別の端末から `ssh admin-taroyamada@<FQDN>` で入り、`sudo -v` が通ることを確認します。
 
 ### 9.3 既存ユーザーを削除する（必要な場合）
 
 **9.2 の確認が終わるまで削除しないでください**（締め出し防止）。削除は元に戻せないので、先に残すものを確認します。
 
 ```bash
-# admin で実行する
+# 管理者アカウントで実行する
 who; ps -u <old>                                  # ログイン中のセッションとプロセス
 sudo crontab -u <old> -l                          # cron
 sudo find / -xdev -user <old> -not -path '/home/<old>/*' -ls   # ホーム外の所有ファイル
