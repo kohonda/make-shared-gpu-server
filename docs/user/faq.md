@@ -40,6 +40,7 @@
 
 ## Q. Docker から GPU が見えない
 
+- Docker を使うには管理者の許可が必要です。`permission denied` と出る場合は、管理者に許可を依頼してください。許可後は、次回ログインから `sudo` なしで使えます。
 - `docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi` で確認。
 - 出ない場合は管理者に。`nvidia-ctk runtime configure --runtime=docker` の再実行で直ることがあります。
 
@@ -56,5 +57,5 @@
 
 ## Q. sudo したい
 
-- 一般ユーザーは sudo 権限を持ちません。必要なソフトは `uv` / `pixi` / `docker` で完結させてください。
+- 一般ユーザーは sudo 権限を持ちません。必要なソフトは `uv` / `pixi` で完結させてください。Docker は管理者の許可制です。
 - 本当に必要なら管理者に相談。

@@ -212,7 +212,7 @@ tmux attach -t train
 
 ## 8. Docker
 
-You're in the `docker` group, so **no sudo needed**.
+Docker requires permission from an admin. Ask an admin if you need it. Once allowed, you can use it **without sudo** from your next login.
 
 ```bash
 docker run --rm hello-world

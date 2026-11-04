@@ -238,7 +238,7 @@ tmux attach -t train     # 戻る
 
 ## 8. Docker
 
-`docker` グループに入っているので **sudo 不要** です。
+Docker を使うには管理者の許可が必要です。必要なら管理者に依頼してください。許可されると、次回ログインから **sudo なし** で使えます。
 
 ```bash
 docker run --rm hello-world
