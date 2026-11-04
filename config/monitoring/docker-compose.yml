@@ -3,7 +3,7 @@
 #
 # Services:
 #   prometheus     - metrics database
-#   grafana        - dashboards (admin password from .env)
+#   grafana        - dashboards (read-only without login; admin password from .env to edit)
 #   dcgm-exporter  - NVIDIA GPU metrics
 #   node-exporter  - host CPU/memory/disk metrics
 #
@@ -39,6 +39,11 @@ services:
       GF_SECURITY_ADMIN_USER: ${GF_SECURITY_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:?set in .env}
       GF_USERS_ALLOW_SIGN_UP: "false"
+      # Anyone who can reach the Tailscale-only port reads the dashboards without a
+      # login, so lab users never need the admin password just to check free GPUs.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/gpu-overview.json
     volumes:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro

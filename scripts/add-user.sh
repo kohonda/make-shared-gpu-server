@@ -16,6 +16,9 @@ source "$SCRIPT_DIR/lib/common.sh"
 
 # ---------- configurable variables ----------
 SHARED_GROUP="${SHARED_GROUP:-labmembers}"
+GRAFANA_PORT=3000
+GRAFANA_CONTAINER="lab-grafana"
+MONITORING_STACK_HINT="(requires the monitoring stack: scripts/setup-monitoring.sh)"
 # --------------------------------------------
 
 require_root
@@ -51,6 +54,13 @@ TS_FQDN=$(tailscale status --json 2>/dev/null \
     | python3 -c 'import json,sys; print(json.load(sys.stdin).get("Self",{}).get("DNSName","").rstrip("."))' \
     2>/dev/null) || true   # Tailscale may be absent or stopped
 
+# The stack is optional, and this check must not fail a run whose user already exists.
+GRAFANA_RUNNING=$(docker inspect -f '{{.State.Running}}' "$GRAFANA_CONTAINER" 2>/dev/null) || true
+DASHBOARD_NOTE=""
+if [[ "$GRAFANA_RUNNING" != "true" ]]; then
+    DASHBOARD_NOTE="   $MONITORING_STACK_HINT"
+fi
+
 cat <<EOF
 
 ================ User Created ================
@@ -64,6 +74,9 @@ SSH CONNECTION (tell the user):
   ssh $USERNAME@${TS_IP:-<tailscale-ip>}
   ssh $USERNAME@${TS_HOSTNAME:-<host>}   (tailnet members only)
 
+GPU DASHBOARD (tell the user; no login needed):
+  http://${TS_FQDN:-<host>.<tailnet>.ts.net}:$GRAFANA_PORT$DASHBOARD_NOTE
+
 NEXT STEPS:
   1. Share this machine with the user's email: Tailscale admin console ->
      Machines -> this machine -> Share. No password, no SSH key required.
@@ -71,6 +84,7 @@ NEXT STEPS:
      (users: ["$USERNAME"], dst: ["tag:server"]):
      https://login.tailscale.com/admin/acls/file
   3. Tell the user the FQDN above: ssh $USERNAME@${TS_FQDN:-<host>.<tailnet>.ts.net}
+  4. A shared user opens the dashboard only if the policy file's "grants" allow port $GRAFANA_PORT.
   (admins / special users only: invite to the tailnet instead, see docs/admin/add-user.md)
 
   To open a shell as this user from the admin account:

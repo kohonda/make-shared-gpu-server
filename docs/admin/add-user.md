@@ -39,6 +39,7 @@ sudo ./scripts/add-user.sh <username>
 - Tailscale が未インストール・停止中でも最後まで実行され、サマリーを表示します
 - **パスワードは `passwd -l` でロック**（Tailscale SSH 経由でのみログイン可）
 - `authorized_keys` は作成しません
+- 完了サマリーに、利用者へ伝えるダッシュボードの URL を表示します。監視スタックの起動を確認できないときは、URL に `(requires the monitoring stack: scripts/setup-monitoring.sh)` を添えます
 
 作成後、下の「Share でサーバーを共有し、`ssh` ルールを追加（標準）」に進んでください。
 
@@ -126,6 +127,14 @@ sudo usermod -aG sudo <username>
 ```bash
 tailscale status
 ```
+
+### 4. ダッシュボードの URL を伝える
+
+完了サマリーの GPU DASHBOARD の URL を利用者に伝えます。ログインなしで GPU の使用状況を見られます（[setup-guide §5](setup-guide.md)）。`admin` のパスワードは渡さないでください。
+
+監視スタックを起動していないと、URL は開けません。`(requires the monitoring stack: ...)` と添えられていたら、[setup-guide §5](setup-guide.md) の手順で起動します。
+
+Share した利用者が開くには、管理者側の `grants` で、共有先ユーザー（`src` が `*` か `autogroup:shared`）からサーバーの 3000 番への通信が許されている必要があります。
 
 ### Share の注意点
 
