@@ -34,14 +34,38 @@ sudo ./scripts/add-user.sh <username>
 挙動:
 
 - ホームディレクトリ作成（`/home/<user>`, mode `750`）
-- グループ `labmembers`, `docker` に所属（Docker は sudo 不要で使えます。グループ名 `labmembers` は環境変数 `SHARED_GROUP` で変更可）
+- グループ `labmembers` に所属（グループ名は環境変数 `SHARED_GROUP` で変更可）
+- `docker` グループには入れません。既定では Docker を使えません（下の「Docker を使わせたい場合」を参照）
 - Tailscale が未インストール・停止中でも最後まで実行され、サマリーを表示します
-
-> ⚠️ **docker グループは実質 root 相当です。** `docker run -v /:/host ...` でホストの任意のファイルを読み書きでき、sudo が無くても root と同じことができます。「一般ユーザーは sudo を持たない」という前提はこのグループには当てはまりません。**信頼できるメンバーだけ**を追加してください。
 - **パスワードは `passwd -l` でロック**（Tailscale SSH 経由でのみログイン可）
 - `authorized_keys` は作成しません
 
 作成後、下の「Share でサーバーを共有し、`ssh` ルールを追加（標準）」に進んでください。
+
+## Docker を使わせたい場合
+
+`add-user.sh` で作ったユーザーは、既定では Docker を使えません。必要な人にだけ、個別に許可します。
+
+> ⚠️ **docker グループは実質 root 相当です。** `docker run -v /:/host ...` でホストの任意のファイルを読み書きでき、sudo が無くても root と同じことができます。監視スタックも止められます。「一般ユーザーは sudo を持たない」という前提はこのグループには当てはまりません。**信頼できるメンバーだけ**を許可してください。
+
+```bash
+# 許可する
+sudo gpasswd -a <user> docker
+
+# 取り消す
+sudo gpasswd -d <user> docker
+```
+
+どちらも、反映されるのは次回ログインからです。続いているセッション（tmux を含む）には反映されません。
+
+### 既存の利用者から外す
+
+この既定になる前に作ったユーザーは `docker` グループに入ったままで、自動では外れません。グループの中身を確認し、許可しない人を外してください。
+
+```bash
+getent group docker
+sudo gpasswd -d <user> docker
+```
 
 ## sudo を使わせたい場合
 
