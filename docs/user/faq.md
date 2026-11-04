@@ -25,6 +25,14 @@
 - 1 GPU だけ使う設定 (`CUDA_VISIBLE_DEVICES=N`) で詰めます。
 - 完全に塞がっている場合は Slack などで他のメンバーと調整してください。
 
+## Q. SSH で繋がらない / `Could not resolve hostname` / cannot connect
+
+- Share（マシンの共有）で受け入れられた場合、サーバーには **FQDN（`<host>.<tailnet>.ts.net`）か Tailscale IP（`100.x.x.x`）でしか届きません**。`ssh alice@gpu01` のような短い名前や、`~/.ssh/config` の `HostName gpu01` では届きません。管理者から伝えられた FQDN を使ってください。
+  If you were onboarded via a share, use the FQDN or the Tailscale IP; a short name such as `gpu01` does not resolve.
+- 共有を承認したか確認してください。承認していれば `tailscale status` に共有されたサーバーが出ます。 / Check that you accepted the share: the shared server then appears in `tailscale status`.
+- 自分の PC で Tailscale が動いているか確認してください（Linux なら `sudo tailscale up`）。 / Make sure Tailscale is running on your machine (`sudo tailscale up` on Linux).
+- lab の tailnet に招待されていて、Fast User Switching で個人の tailnet に切り替えたままになっていませんか？同時にアクティブなのは1アカウントだけです（[getting-started.ja.md](getting-started.ja.md) / [en](getting-started.en.md) の Fast User Switching 節）。 / If you were invited to the lab tailnet, check you have not switched to your personal tailnet: only one account is active at a time.
+
 ## Q. SSH 接続が頻繁に切れる
 
 - `~/.ssh/config` に `ServerAliveInterval 60` を入れる。

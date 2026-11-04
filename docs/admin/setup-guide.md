@@ -47,9 +47,9 @@ cd make-shared-gpu-server
 
 `setup.sh` の ufw 設定は SSH を `tailscale0` からしか許可しません。そのため **Tailscale を先に上げます**。`setup-tailscale.sh` は `setup.sh` に依存しません。`tailscale0` が無い状態で `setup.sh` を実行した場合、ufw は変更されず（有効化もリセットもされず）WARN が出ます。その場合は Tailscale を上げてから `setup.sh` を再実行してください。
 
-### 事前準備: ACL の tagOwners
+### 事前準備: ポリシーファイルの tagOwners
 
-サーバーは `tag:server` タグ付きで登録します。タグを付けるには、ACL（<https://login.tailscale.com/admin/acls/file>）の `tagOwners` にそのタグが定義されている必要があります。無いと `tailscale up --advertise-tags=tag:server` が失敗します。
+サーバーは `tag:server` タグ付きで登録します。タグを付けるには、tailnet のポリシーファイル（管理画面の Access controls: <https://login.tailscale.com/admin/acls/file>）の `tagOwners` にそのタグが定義されている必要があります。無いと `tailscale up --advertise-tags=tag:server` が失敗します。
 
 ```jsonc
 "tagOwners": {
@@ -66,7 +66,7 @@ sudo ./scripts/setup-tailscale.sh
 sudo tailscale up --ssh --hostname="$(hostname)" --advertise-tags=tag:server
 ```
 
-表示される URL を開いて tailnet に登録します。`--advertise-tags=tag:server` により、ACL の SSH ルールで `dst: ["tag:server"]` として参照できます。
+表示される URL を開いて tailnet に登録します。`--advertise-tags=tag:server` により、ポリシーファイルの `ssh` ルールで `dst: ["tag:server"]` として参照できます。
 
 ### 方法B: Auth Key（ヘッドレス／ブラウザなしの場合）
 
@@ -82,7 +82,7 @@ TAILSCALE_AUTHKEY=tskey-auth-XXXX sudo -E ./scripts/setup-tailscale.sh
 
 ### tailnet の管理
 
-セットアップ後、Tailscale 管理画面 <https://login.tailscale.com/admin/machines> でマシンを確認し、lab メンバーを **Users → Invite users** で招待してください。必要に応じて ACL で SSH 権限を絞ります。
+セットアップ後、Tailscale 管理画面 <https://login.tailscale.com/admin/machines> でマシンを確認してください。利用者は、このマシンを **Machines → 対象サーバー → Share** で利用者ごとに共有して受け入れます（tailnet には招待しません）。手順と、ポリシーファイルの `grants`（通信できる範囲）と `ssh`（ログインできるユーザー）の役割は [add-user.md](add-user.md) を参照してください。tailnet への招待（**Users → Invite users**）は、管理者を増やすときなどのオプションです。
 
 ### SSH 運用ポリシー
 
@@ -91,7 +91,7 @@ TAILSCALE_AUTHKEY=tskey-auth-XXXX sudo -E ./scripts/setup-tailscale.sh
 - **ufw**: 22 番ポートは `tailscale0` インターフェースからのみ許可。LAN からの SSH も塞いでいます。
 - **Tailscale SSH**: `tailscale up --ssh` により tailnet 経由の SSH 接続は Tailscale が直接処理します。認証は **tailnet のアイデンティティ**（Google 等）で行われ、Linux 側のパスワード・`authorized_keys` は参照されません。
 - **sshd ハードニング**: 万一 Tailscale SSH が停止し LAN 経由を開けた場合でも平文パスワードで入れないよう、`/etc/ssh/sshd_config.d/00-lab.conf` で `PasswordAuthentication no` / `PermitRootLogin no` を強制しています。sshd は各設定項目について最初に読んだ値を使うため、`50-cloud-init.conf` より先に読まれる `00-` の名前にしています。`setup.sh` は旧 `99-lab.conf` を削除し、`sshd -t` で検証してから reload します。
-- **結果**: 利用者の受け入れは「`add-user.sh` でアカウント作成 → tailnet に招待」だけで完了します。初期パスワードも公開鍵も不要です。
+- **結果**: 利用者の受け入れは「`add-user.sh` でアカウント作成 → サーバーを Share → ポリシーファイルの `ssh` にルールを追加（新しい利用者のときだけ）」で完了します。初期パスワードも公開鍵も不要です。
 
 ## 4. メインセットアップの実行
 
