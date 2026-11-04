@@ -322,7 +322,7 @@ Grafana のパスワードだけは値を書きます。同じサーバーの `c
 
 ## 9. 既存サーバーを命名規則に合わせる
 
-すでに動いているサーバーを[命名規則](#命名規則とアカウント構成)に合わせる手順です。**9.1 → 9.2 → 9.3 の順に**進めます。
+すでに動いているサーバーを[命名規則](#命名規則とアカウント構成)に合わせる手順です。**9.1 → 9.2 → 9.3 の順に**進めます。アカウントを作り直さず名前だけ変えたいときは、9.2 と 9.3 の代わりに [9.4](#94-管理者アカウントの名前を変更する) を使います。
 
 ### 9.1 ホスト名を変更する
 
@@ -365,3 +365,64 @@ sudo du -sh /home/<old>                           # 残すデータの量
 - ホーム外に残すファイルは、先に新しい所有者へ `chown` します。残したまま削除すると UID だけの所有者になり、後で同じ UID を割り当てられたユーザーが所有者になるおそれがあります。
 - `sudo pkill -u <old>` と `sudo userdel -r <old>` を実行します（[add-user.md の「削除」](add-user.md#削除)を参照）。迷ったらホームを残す `userdel`（`-r` なし）か、ロックのみの `sudo usermod -L <old>` にとどめます。
 - ポリシーファイルの `<old>` の `ssh` ルールを消し、`ssh <old>@<FQDN>` で入れないことを確認します。
+
+### 9.4 管理者アカウントの名前を変更する
+
+UID、パスワード、グループ（`sudo` など）、ホームの中身はそのまま引き継がれます。使っているアカウント自身では変更できないので、別の管理者アカウントで作業します。サーバーごとに同じ手順を行います。
+
+**1. 作業用の管理者アカウントで入る**
+
+他に管理者アカウントがなければ、[9.2](#92-管理者アカウントを追加する) の手順で一時的なアカウント（例: `admin-tmp`）を作り、`ssh` ルールも追加します。ログインして `sudo -v` が通ることを確認してください。名前を変える間に締め出されないよう、この確認の前に先へ進まないでください。
+
+**2. 名前を変更する**
+
+変更するアカウントは、SSH とデスクトップの両方からログアウトしておきます。`usermod` はプロセスが動いていても止めてくれないことがあるので、先に止めます。
+
+```bash
+# 作業用の管理者アカウントで実行する
+OLD=admin-oldname
+NEW=admin-taroyamada
+
+getent passwd "$NEW"; getent group "$NEW"   # 既にないことを確認
+who; ps -u "$OLD"                           # 動いているものを確認（実験などがあれば先に終わらせる）
+sudo pkill -u "$OLD"
+ps -u "$OLD"                                # 何も残っていないことを確認
+
+sudo usermod -l "$NEW" "$OLD"
+sudo groupmod -n "$NEW" "$OLD"
+sudo usermod -d "/home/$NEW" -m "$NEW"
+```
+
+**3. 自動では変わらない場所を直す**
+
+`usermod` は次の場所を変更しません。`crontab` は移さないと動かなくなります。
+
+```bash
+sudo sed -i "s/^$OLD:/$NEW:/" /etc/subuid /etc/subgid
+sudo test -e "/var/spool/cron/crontabs/$OLD" \
+  && sudo mv "/var/spool/cron/crontabs/$OLD" "/var/spool/cron/crontabs/$NEW"
+sudo grep -rl "$OLD" /etc/sudoers.d /etc/gdm3/custom.conf   # 出てきたら直す（sudoers は sudo visudo -f <file> で編集）
+```
+
+**4. ログインできるようにする**
+
+- ポリシーファイルの `ssh` ルールの `users` を新しい名前に変えます。
+- **作業用のセッションを閉じずに**、別の端末から `ssh $NEW@<FQDN>` で入り、`sudo -v` が通ることを確認します。
+- 手元の `~/.ssh/config` の `User` も変えます。
+
+**5. 古いパスを使っているものを直す**
+
+ホームのパスが変わるので、新しいアカウントで次を行います。
+
+```bash
+cd ~/make-shared-gpu-server                # リポジトリを置いた場所
+sudo ./scripts/setup-monitoring.sh         # 監視スタックを使っている場合。ユニットのパスを更新する
+sudo ./scripts/update-admin-notes.sh       # 管理者メモを更新する
+grep -n "/home/$OLD" ~/.bashrc ~/.profile  # 古いパスが残っていれば直す（OLD は改めて設定する）
+```
+
+Python の仮想環境は古いパスを記録しているので、使っている場合は `uv` や `pixi` で作り直します。
+
+**6. 一時的なアカウントを消す**
+
+作業用のアカウントを一時的に作った場合は、[add-user.md の「削除」](add-user.md#削除)の手順で削除し、`ssh` ルールも消します。
