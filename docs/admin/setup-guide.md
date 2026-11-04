@@ -10,7 +10,7 @@
 
 ## 最初にやること: 管理者アカウントとホスト名
 
-**他の手順より先に**、[命名規則](#命名規則とアカウント構成)どおりの管理者アカウント（例: `admin-taroyamada`）とホスト名（例: `gpu01-b6000`）にします。後から変えると、ホスト名は利用者の接続先（FQDN）が変わり、管理者アカウントはホームのパスが変わるので、直す場所が増えます。
+**他の手順より先に**、[命名規則](#命名規則とアカウント構成)どおりの管理者アカウント（例: `admin-koheihonda`）とホスト名（例: `gpu01-b6000`）にします。後から変えると、ホスト名は利用者の接続先（FQDN）が変わり、管理者アカウントはホームのパスが変わるので、直す場所が増えます。
 
 Ubuntu をこれからインストールするなら、インストーラーの入力欄にこの2つを入れれば、ここでの作業は終わりです。
 
@@ -43,13 +43,13 @@ id -un; hostnamectl --static
 
 ### ユーザー名
 
-- 名+姓の小文字にします（例: `taroyamada`）。全サーバーで共通の名前を使い、再利用しません。
+- 名+姓の小文字にします（例: `koheihonda`）。全サーバーで共通の名前を使い、再利用しません。
 - `add-user.sh` の検証により、大文字を含む名前（`KoheiHonda`）と数字で始まる名前は使えません。
 - `add-user.sh` は UID を指定しないので、全サーバーで同じ順番でユーザーを追加します（将来の NFS やディスク移設に備えるため）。
 
 ### 管理者のアカウント
 
-- **管理者アカウント（`admin-<名+姓>`）**: 例: `admin-taroyamada`。Ubuntu インストール時に作る最初のユーザーです。管理作業とデスクトップログインに使い、実験はしません。
+- **管理者アカウント（`admin-<名+姓>`）**: 例: `admin-koheihonda`。Ubuntu インストール時に作る最初のユーザーです。管理作業とデスクトップログインに使い、実験はしません。
 - **個人名アカウント**: 実験は個人名のアカウントで行います。管理者本人の分も `add-user.sh` で作る一般ユーザーです。このため docker グループに入り、実質 root 相当の権限は残ります。外すなら `sudo gpasswd -d <user> docker` ですが、その場合は Docker を使えません。
 - **管理者が増える場合**: 管理者アカウントは共用せず、同じ規則で1人1つ作ります（[§9.2](#92-管理者アカウントを追加する)を参照）。
 
@@ -146,7 +146,7 @@ TAILSCALE_AUTHKEY=tskey-auth-XXXX sudo -E ./scripts/setup-tailscale.sh
         "action": "check",                 // 接続時に再認証を求める
         "src":    ["you@example.com"],     // 管理者の Tailscale アカウントのメールアドレス
         "dst":    ["tag:server"],
-        "users":  ["admin-taroyamada"]     // 管理者アカウントの Linux ユーザー名
+        "users":  ["admin-koheihonda"]     // 管理者アカウントの Linux ユーザー名
     }
 ]
 ```
@@ -292,7 +292,7 @@ skip の理由:
 最初に追加するのは、管理者本人の個人名アカウントです（[命名規則](#命名規則とアカウント構成)を参照）。
 
 ```bash
-sudo ./scripts/add-user.sh taroyamada
+sudo ./scripts/add-user.sh koheihonda
 ```
 
 詳細は [add-user.md](add-user.md)。
@@ -357,13 +357,13 @@ hostnamectl --static; tailscale status  # 確認
 ### 9.2 管理者アカウントを追加する
 
 ```bash
-getent passwd admin-taroyamada; getent group admin-taroyamada   # 既にないことを確認
-sudo adduser --gecos "" admin-taroyamada                        # sudo とデスクトップログイン用のパスワードを設定
-sudo usermod -aG sudo admin-taroyamada
+getent passwd admin-koheihonda; getent group admin-koheihonda   # 既にないことを確認
+sudo adduser --gecos "" admin-koheihonda                        # sudo とデスクトップログイン用のパスワードを設定
+sudo usermod -aG sudo admin-koheihonda
 ```
 
 - [§3 の管理者アカウント用 `ssh` ルール](#管理者アカウント用の-ssh-ルール)をポリシーファイルに追加します。
-- **今のセッションを閉じずに**、別の端末から `ssh admin-taroyamada@<FQDN>` で入り、`sudo -v` が通ることを確認します。
+- **今のセッションを閉じずに**、別の端末から `ssh admin-koheihonda@<FQDN>` で入り、`sudo -v` が通ることを確認します。
 
 ### 9.3 既存ユーザーを削除する（必要な場合）
 
@@ -397,7 +397,7 @@ UID、パスワード、グループ（`sudo` など）、ホームの中身は�
 ```bash
 # 作業用の管理者アカウントで実行する
 OLD=admin-oldname
-NEW=admin-taroyamada
+NEW=admin-koheihonda
 
 getent passwd "$NEW"; getent group "$NEW"   # 既にないことを確認
 who; ps -u "$OLD"                           # 動いているものを確認（実験などがあれば先に終わらせる）
@@ -426,7 +426,24 @@ sudo grep -rl "$OLD" /etc/sudoers.d /etc/gdm3/custom.conf   # 出てきたら直
 - **作業用のセッションを閉じずに**、別の端末から `ssh $NEW@<FQDN>` で入り、`sudo -v` が通ることを確認します。
 - 手元の `~/.ssh/config` の `User` も変えます。
 
-**5. 古いパスを使っているものを直す**
+**5. パスワードを変更する（任意）**
+
+名前を変えてもパスワードは今のままです。新しくしたいときは、ここで設定します。
+
+```bash
+# 新しい名前で入って実行する（今のパスワードが必要）
+passwd
+
+# 今のパスワードを忘れた場合は、作業用の管理者アカウントから実行する（今のパスワードは不要）
+sudo passwd admin-koheihonda
+```
+
+- このパスワードは `sudo` とデスクトップへのログインに使います。Tailscale SSH の認証には使わないので、`ssh` の接続方法は変わりません。
+- 変更したら `sudo -k; sudo -v` で確認します。**確認が終わるまで、作業用のアカウントを消さないでください**（`sudo` を使えなくなるおそれがあるため）。
+- デスクトップを使っている場合、`sudo passwd` で変えるとログインキーリングのパスワードは古いままになることがあります。ログイン後に古いパスワードを求められたら、古いパスワードを入力するか、「パスワードとキー」アプリで変更します。
+- 新しいパスワードはパスワードマネージャーに保存します。
+
+**6. 古いパスを使っているものを直す**
 
 ホームのパスが変わるので、新しいアカウントで次を行います。
 
@@ -439,6 +456,6 @@ grep -n "/home/$OLD" ~/.bashrc ~/.profile  # 古いパスが残っていれば�
 
 Python の仮想環境は古いパスを記録しているので、使っている場合は `uv` や `pixi` で作り直します。
 
-**6. 一時的なアカウントを消す**
+**7. 一時的なアカウントを消す**
 
 作業用のアカウントを一時的に作った場合は、[add-user.md の「削除」](add-user.md#削除)の手順で削除し、`ssh` ルールも消します。
