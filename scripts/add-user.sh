@@ -78,3 +78,8 @@ NEXT STEPS:
       sudo -i -u $USERNAME
 ===============================================
 EOF
+
+# The user already exists at this point, so a stale note must not fail the run.
+if [[ -n "${SUDO_USER:-}" && "$SUDO_USER" != "root" ]]; then
+    "$SCRIPT_DIR/update-admin-notes.sh" || log_warn "Could not update the admin notes; run scripts/update-admin-notes.sh by hand."
+fi
