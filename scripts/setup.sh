@@ -27,7 +27,39 @@ UV_TOOL_BIN_DIR="${UV_TOOL_BIN_DIR:-/usr/local/bin}"  # where uv tool links thei
 SSHD_DROPIN_DIR="${SSHD_DROPIN_DIR:-/etc/ssh/sshd_config.d}"
 SSHD_DROPIN="00-lab.conf"
 SSHD_LEGACY_DROPIN="99-lab.conf"   # name used before 00-lab.conf; removed if present
+ADMIN_SCRIPTS="update-and-reboot.sh update-and-poweroff.sh"   # from config/admin-home/
 # --------------------------------------------
+
+# Place one script in the admin's home. An existing file is kept even when it
+# differs, so a re-run never discards the admin's edits; it only stays executable.
+install_admin_script() {
+    local src="$1" dst="$2" owner="$3"
+    if [[ -L "$dst" ]]; then
+        log_warn "Skipped (symlink): $dst"
+    elif [[ ! -e "$dst" ]]; then
+        install -o "$owner" -g "$(id -gn "$owner")" -m 0755 "$src" "$dst"
+        log_info "Installed: $dst"
+    elif cmp -s "$src" "$dst"; then
+        log_info "Up-to-date: $dst"
+        chmod +x "$dst"
+    else
+        log_warn "Kept existing file (differs from $src): $dst"
+        chmod +x "$dst"
+    fi
+}
+
+# Place the update scripts in the home of the admin running this script via sudo.
+install_admin_scripts() {
+    local admin="${SUDO_USER:-}" home script
+    if [[ -z "$admin" || "$admin" == "root" ]]; then
+        log_warn "Not run via sudo from an admin account; skipping update scripts."
+        return 0
+    fi
+    home=$(getent passwd "$admin" | cut -d: -f6)
+    for script in $ADMIN_SCRIPTS; do
+        install_admin_script "$REPO_ROOT/config/admin-home/$script" "$home/$script" "$admin"
+    done
+}
 
 # Make a directory every $SHARED_GROUP member can write, including files other
 # members created: setgid keeps the group, and the default ACL grants group rwx
@@ -244,6 +276,9 @@ cat >/etc/cron.d/scratch-cleanup <<'EOF'
 # 0 4 * * * root find /scratch -mindepth 1 -type f -atime +30 -delete
 EOF
 chmod 0644 /etc/cron.d/scratch-cleanup
+
+log_info "===== 16. Admin update scripts ====="
+install_admin_scripts
 
 log_info "===== Setup complete ====="
 echo
