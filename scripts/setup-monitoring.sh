@@ -19,6 +19,10 @@ UNIT_DST="/etc/systemd/system/$UNIT_NAME"
 # ExecStart= splits on whitespace and expands % and $, so a path outside this set
 # would give a unit that fails at every boot.
 UNIT_SAFE_PATH_REGEX='^[[:alnum:]/._+@:-]+$'
+PROMETHEUS_SERVICE="prometheus"
+PROMETHEUS_PORT=9090
+GRAFANA_SERVICE="grafana"
+GRAFANA_PORT=3000
 
 # Print this host's Tailscale IPv4 address, or die when Tailscale is not up.
 tailscale_ipv4() {
@@ -56,6 +60,37 @@ install_boot_unit() {
     systemctl enable "$UNIT_NAME"
 }
 
+# Run docker compose for the stack. Pass the address in the environment too:
+# Compose prefers an exported variable over --env-file, so an inherited
+# MON_BIND_ADDR could otherwise widen the bind or fail the comparison below.
+monitoring_compose() {
+    ( cd "$MON_DIR" && env "$BIND_ADDR_KEY=$BIND_ADDR" docker compose --env-file .env "$@" )
+}
+
+# Succeed when a service's port is published on the bind address. Compare the
+# address as well as the exit code: a port published elsewhere is not what the
+# compose file asks for.
+port_is_published() {
+    local service="$1" port="$2" published
+    published=$(monitoring_compose port "$service" "$port" 2>/dev/null) || return 1
+    [[ "$published" == "$BIND_ADDR:$port" ]]
+}
+
+monitoring_ports_published() {
+    port_is_published "$PROMETHEUS_SERVICE" "$PROMETHEUS_PORT" &&
+        port_is_published "$GRAFANA_SERVICE" "$GRAFANA_PORT"
+}
+
+# `up -d` exits 0 for a running container whose port allocation failed when Docker
+# started before the Tailscale IP existed. Dying here lets the unit retry. Recreate
+# only when a port is missing: doing it every run would restart healthy containers.
+ensure_ports_published() {
+    monitoring_ports_published && return 0
+    log_warn "Grafana / Prometheus ports are not published on $BIND_ADDR. Recreating the containers."
+    monitoring_compose up -d --force-recreate "$PROMETHEUS_SERVICE" "$GRAFANA_SERVICE"
+    monitoring_ports_published || die "Grafana / Prometheus ports are still not published on $BIND_ADDR."
+}
+
 require_root
 
 if ! cmd_exists docker; then
@@ -80,9 +115,8 @@ set_env_value "$ENV_FILE" "$BIND_ADDR_KEY" "$BIND_ADDR"
 log_info "Grafana / Prometheus will bind to $BIND_ADDR ($BIND_ADDR_KEY in $ENV_FILE)"
 
 log_info "Starting monitoring stack with docker compose"
-# Pass the address in the environment too: Compose prefers an exported variable
-# over --env-file, so an inherited MON_BIND_ADDR could otherwise widen the bind.
-( cd "$MON_DIR" && env "$BIND_ADDR_KEY=$BIND_ADDR" docker compose --env-file .env up -d )
+monitoring_compose up -d
+ensure_ports_published
 
 if [[ -z "${INVOCATION_ID:-}" ]]; then
     install_boot_unit
@@ -90,5 +124,5 @@ else
     log_info "Running from a systemd unit (INVOCATION_ID set); not reinstalling $UNIT_NAME"
 fi
 
-log_info "Stack is up. Grafana: http://$BIND_ADDR:3000  Prometheus: http://$BIND_ADDR:9090"
+log_info "Stack is up. Grafana: http://$BIND_ADDR:$GRAFANA_PORT  Prometheus: http://$BIND_ADDR:$PROMETHEUS_PORT"
 log_info "(Published on the Tailscale IP only; dcgm-exporter publishes no host port.)"
