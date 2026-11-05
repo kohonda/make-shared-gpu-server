@@ -36,7 +36,12 @@
 ## Q. SSH 接続が頻繁に切れる
 
 - `~/.ssh/config` に `ServerAliveInterval 60` を入れる。
-- 学習は `tmux` 内で。
+- 学習は `tmux` 内で（[6.4 長時間ジョブを止めない](getting-started.ja.md#64-長時間ジョブを止めないtmux--herdr) / [Keep long jobs running](getting-started.en.md#keep-long-jobs-running-tmux--herdr)）。
+
+## Q. SSH が切れたらプログラムが止まった / My program stopped when SSH disconnected
+
+- SSH 直下で起動したプログラムは、切断で止まることがあります。VS Code のターミナルでも同じです。 / A program started directly in an SSH session can stop when the connection drops, in the VS Code terminal too.
+- 次回からは `tmux` か `herdr` の中で起動してください（[6.4 長時間ジョブを止めない](getting-started.ja.md#64-長時間ジョブを止めないtmux--herdr) / [Keep long jobs running](getting-started.en.md#keep-long-jobs-running-tmux--herdr)）。 / Next time, start it inside `tmux` or `herdr`.
 
 ## Q. Docker から GPU が見えない
 

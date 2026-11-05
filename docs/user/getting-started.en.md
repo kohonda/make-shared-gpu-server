@@ -8,7 +8,7 @@ Welcome to the lab GPU server. This guide walks first-time users through connect
 
 - The server is shared. **Do not hog GPUs** or kill other users' jobs.
 - Put large datasets and models under `/shared`, not in your home directory.
-- Always run long jobs inside `tmux` or `byobu` so they survive disconnection.
+- Always run long jobs inside `tmux`, `byobu` or `herdr` so they survive disconnection (see [Keep long jobs running](#keep-long-jobs-running-tmux--herdr)).
 - See [faq.md](faq.md) when stuck.
 
 ## 2. SSH access
@@ -100,6 +100,8 @@ Host gpu01
 
 > ⚠️ Set `HostName` to the server's **FQDN (`<host>.<tailnet>.ts.net`) or Tailscale IP (e.g. `100.x.x.x`)** from the admin. The short name shown in `tailscale status` (`gpu01`) does not reach the server if you were onboarded via a share. Also, do NOT set it to a name that resolves to your own machine (would give `Connection refused`).
 
+> ⚠️ A program started directly in an SSH session can stop when the connection drops. Read [Keep long jobs running](#keep-long-jobs-running-tmux--herdr) before you start training or anything else long.
+
 ### 2.5 sudo / password
 
 Regular users have no password (locked with `passwd -l`). If you ever need `sudo`, ask the admin to set a password for you.
@@ -188,14 +190,51 @@ Always set this so you don't accidentally grab every GPU.
 - Do not fill a GPU's memory; when sharing a GPU, keep usage down (batch size, or PyTorch's `torch.cuda.set_per_process_memory_fraction`)
 - Stop finished jobs and idle Jupyter kernels so the GPU is released
 
-### tmux for long jobs
+### Keep long jobs running (tmux / herdr)
+
+**Why jobs stop**
+
+A program started directly in an SSH session can stop when the connection drops: Wi-Fi loss, your laptop going to sleep, or closing the terminal. Start it inside tmux or herdr, in the VS Code terminal too.
+
+**tmux** (already installed on the server)
 
 ```bash
-tmux new -s train
-# launch training inside
-# Ctrl+b then d to detach
-tmux attach -t train
+tmux new -s train            # create a session and launch training inside
+# Ctrl+b then d to detach (the job keeps running; you can disconnect SSH)
+tmux attach -t train         # after reconnecting, come back with this
+tmux ls                      # list sessions
+tmux kill-session -t train   # end the session (programs inside stop too)
 ```
+
+The lab settings (`~/.tmux.conf`, distributed from `config/skel/.tmux.conf`) enable the mouse, and `Ctrl+b` then `|` / `-` splits the screen.
+
+**herdr** (an option for running several coding agents, such as Claude Code or Codex)
+
+It is not installed on the server, so each person who wants it installs it into their own `~/.local/bin` (no `sudo` needed).
+
+```bash
+curl -fsSL https://herdr.dev/install.sh | sh
+```
+
+After the first install, log in again and `herdr` is available.
+
+```bash
+herdr               # start
+# Ctrl+b then q to detach (programs inside keep running)
+herdr               # after reconnecting, come back with this
+herdr server stop   # stop everything (programs inside stop too)
+```
+
+See the [official documentation](https://herdr.dev/docs/) for key bindings.
+
+**Which to use**
+
+Use tmux for training jobs and herdr for agent work. Both use `Ctrl+b`, so do not nest one inside the other.
+
+**Cautions**
+
+- Rebooting the server stops the programs inside both (herdr restores only the layout, not the processes). Save checkpoints.
+- A job you detached from and forgot keeps holding its GPU. Stop it when it is done.
 
 ## 7. Shared resources
 
